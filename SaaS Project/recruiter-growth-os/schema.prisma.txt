@@ -1,0 +1,160 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+///////////////////////
+// ENUMS
+///////////////////////
+
+enum InteractionType {
+  FOLLOW_UP
+  WARM
+  COLD
+}
+
+enum ActionStatus {
+  DRAFT
+  SENT
+  DELIVERED
+  REPLIED
+  NO_RESPONSE
+}
+
+enum ReplyType {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+}
+
+///////////////////////
+// CORE MODELS
+///////////////////////
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  name          String?
+
+  candidates    Candidate[]
+  actions       Action[]
+
+  createdAt     DateTime    @default(now())
+}
+
+///////////////////////
+// CANDIDATE = ENTITY
+///////////////////////
+
+model Candidate {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+
+  name              String
+  role              String
+  company           String
+  linkedinUrl       String?
+
+  // 🔥 STRUCTURED CONTEXT (for pattern detection later)
+  seniorityLevel    String?
+  industry          String?
+  location          String?
+
+  // 🔥 FLEXIBLE SIGNAL STORAGE
+  signals           Json     // dynamic context (viewed profile, etc.)
+
+  interactionType   InteractionType
+
+  tags              String[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  actions           Action[]
+}
+
+///////////////////////
+// ACTION = CORE UNIT OF LEARNING
+///////////////////////
+
+model Action {
+  id              String    @id @default(cuid())
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+
+  candidateId     String
+  candidate       Candidate @relation(fields: [candidateId], references: [id])
+
+  ///////////////////////
+  // MESSAGE DATA
+  ///////////////////////
+
+  messageContent  String    @db.Text
+
+  // 🔥 STRUCTURED STRATEGY + VARIANT
+  strategyType    String    // e.g. "follow_up_soft"
+  messageVariant  String    // e.g. "short_curiosity_v1"
+
+  ///////////////////////
+  // CONTEXT SNAPSHOT
+  ///////////////////////
+
+  // 🔥 CRITICAL: what was true at send time
+  signalsSnapshot Json
+
+  ///////////////////////
+  // PERFORMANCE TRACKING
+  ///////////////////////
+
+  status          ActionStatus
+
+  replyType       ReplyType?
+
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  repliedAt       DateTime?
+
+  ///////////////////////
+  // FEEDBACK LOOP
+  ///////////////////////
+
+  replyContent    String?   @db.Text
+
+  ///////////////////////
+  // METADATA
+  ///////////////////////
+
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([candidateId])
+  @@index([status])
+}
+
+///////////////////////
+// OPTIONAL (BUT STRONG)
+// MESSAGE PERFORMANCE AGGREGATION
+///////////////////////
+
+model StrategyPerformance {
+  id              String   @id @default(cuid())
+
+  strategyType    String
+  messageVariant  String
+
+  totalSent       Int      @default(0)
+  totalReplies    Int      @default(0)
+  positiveReplies Int      @default(0)
+
+  lastUpdated     DateTime @updatedAt
+
+  @@unique([strategyType, messageVariant])
+}

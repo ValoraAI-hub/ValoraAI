@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<!-- saved from url=(0048)file:///C:/Users/annar/Downloads/valoraai_2.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValoraAI — Real Estate Intelligence</title>
+<link href="./ValoraAI — Website_files/css2" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --black: #080808;
+    --offwhite: #F2EDE6;
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-dim: rgba(201, 168, 76, 0.15);
+    --warm-gray: #2A2520;
+    --mid: #6B6158;
+    --border: rgba(201, 168, 76, 0.2);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--offwhite);
+    font-family: 'Instrument Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed; top: 0; left: 0;
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    position: fixed; top: 0; left: 0;
+    width: 32px; height: 32px;
+    border: 1px solid rgba(201, 168, 76, 0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: transform 0.15s ease, width 0.2s, height 0.2s, opacity 0.2s;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1000; opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 60px;
+    z-index: 100;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.9), transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  .nav-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 300; letter-spacing: 0.12em;
+    color: var(--offwhite);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links { display: flex; gap: 40px; list-style: none; }
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em;
+    color: var(--mid); text-decoration: none; text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--gold); }
+
+  .nav-cta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--black); background: var(--gold);
+    border: none; padding: 10px 24px;
+    cursor: none; transition: background 0.3s, transform 0.2s;
+  }
+  .nav-cta:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 160px 60px 100px;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 32px;
+    display: flex; align-items: center; gap: 16px;
+    opacity: 0; animation: fadeUp 0.8s 0.2s forwards;
+  }
+  .hero-eyebrow::before {
+    content: ''; display: block; width: 40px; height: 1px; background: var(--gold);
+  }
+
+  .hero-headline {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(64px, 8vw, 120px);
+    font-weight: 300; line-height: 0.95;
+    letter-spacing: -0.02em;
+    max-width: 900px;
+    opacity: 0; animation: fadeUp 0.9s 0.4s forwards;
+  }
+  .hero-headline em { font-style: italic; color: var(--gold); }
+
+  .hero-sub {
+    max-width: 460px;
+    margin-top: 40px;
+    font-size: 15px; line-height: 1.7;
+    color: var(--mid);
+    opacity: 0; animation: fadeUp 0.9s 0.6s forwards;
+  }
+
+  .hero-actions {
+    margin-top: 56px; display: flex; gap: 20px; align-items: center;
+    opacity: 0; animation: fadeUp 0.9s 0.8s forwards;
+  }
+
+  .btn-primary {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--black); background: var(--gold);
+    border: none; padding: 16px 40px;
+    cursor: none; transition: all 0.3s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-2px); }
+
+  .btn-ghost {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--offwhite); background: transparent;
+    border: 1px solid var(--border); padding: 16px 40px;
+    cursor: none; transition: all 0.3s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+  .hero-stat-row {
+    position: absolute; bottom: 60px; right: 60px;
+    display: flex; gap: 60px;
+    opacity: 0; animation: fadeUp 0.9s 1s forwards;
+  }
+  .hero-stat { text-align: right; }
+  .hero-stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px; font-weight: 300; color: var(--gold);
+    line-height: 1;
+  }
+  .hero-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--mid); margin-top: 6px;
+  }
+
+  /* MARQUEE */
+  .marquee-section {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0; overflow: hidden;
+    background: rgba(201,168,76,0.03);
+  }
+  .marquee-track {
+    display: flex; gap: 80px; white-space: nowrap;
+    animation: marquee 30s linear infinite;
+  }
+  .marquee-item {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 300; font-style: italic;
+    color: var(--mid); flex-shrink: 0;
+  }
+  .marquee-dot {
+    color: var(--gold); margin-right: 80px;
+  }
+
+  /* PROBLEMS */
+  .section { padding: 140px 60px; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label::before { content: ''; display: block; width: 30px; height: 1px; background: var(--gold); }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(40px, 5vw, 72px);
+    font-weight: 300; line-height: 1.05;
+    letter-spacing: -0.01em;
+    max-width: 700px; margin-bottom: 80px;
+  }
+  .section-title em { font-style: italic; color: var(--gold); }
+
+  /* BOTTLENECKS GRID */
+  .bottlenecks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .bottleneck-card {
+    background: var(--black);
+    padding: 48px 40px;
+    position: relative; overflow: hidden;
+    transition: background 0.4s;
+  }
+  .bottleneck-card:hover { background: var(--warm-gray); }
+  .bottleneck-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--gold);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .bottleneck-card:hover::after { transform: scaleX(1); }
+
+  .card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--gold); letter-spacing: 0.2em;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 400; margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .card-desc {
+    font-size: 14px; line-height: 1.7; color: var(--mid);
+  }
+  .card-tag {
+    display: inline-block; margin-top: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); border: 1px solid var(--border);
+    padding: 4px 12px;
+  }
+
+  /* SOLUTIONS */
+  .solutions-section {
+    padding: 140px 60px;
+    background: var(--warm-gray);
+    position: relative; overflow: hidden;
+  }
+  .solutions-section::before {
+    content: 'VALORA';
+    position: absolute; right: -40px; top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 220px; font-weight: 300;
+    color: rgba(201,168,76,0.04);
+    letter-spacing: 0.1em; pointer-events: none;
+  }
+
+  .solutions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: start;
+  }
+
+  .solution-item {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+  .solution-item.visible { opacity: 1; transform: translateY(0); }
+
+  .sol-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 56px; font-weight: 300;
+    color: var(--gold-dim); line-height: 1;
+    margin-bottom: 16px;
+    -webkit-text-stroke: 1px var(--gold);
+    color: transparent;
+  }
+  .sol-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 400;
+    margin-bottom: 12px;
+  }
+  .sol-desc { font-size: 14px; line-height: 1.7; color: var(--mid); }
+
+  /* PROCESS */
+  .process-section { padding: 140px 60px; }
+
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-top: 80px;
+    position: relative;
+  }
+  .process-steps::before {
+    content: '';
+    position: absolute; top: 40px; left: 10%; right: 10%;
+    height: 1px; background: var(--border);
+  }
+
+  .process-step { padding: 0 32px; text-align: center; }
+  .step-icon {
+    width: 80px; height: 80px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 32px;
+    background: var(--black);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--gold); letter-spacing: 0.1em;
+    position: relative; z-index: 1;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .process-step:hover .step-icon { border-color: var(--gold); background: var(--gold-dim); }
+  .step-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 400;
+    margin-bottom: 12px;
+  }
+  .step-desc { font-size: 13px; line-height: 1.7; color: var(--mid); }
+
+  /* CTA SECTION */
+  .cta-section {
+    padding: 160px 60px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(201,168,76,0.06), transparent);
+  }
+
+  .cta-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(52px, 7vw, 96px);
+    font-weight: 300; line-height: 1.0;
+    margin-bottom: 32px;
+  }
+  .cta-title em { font-style: italic; color: var(--gold); }
+  .cta-sub { font-size: 16px; color: var(--mid); margin-bottom: 56px; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .footer-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 300; letter-spacing: 0.1em;
+  }
+  .footer-logo span { color: var(--gold); }
+  .footer-copy {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em; color: var(--mid);
+  }
+  .footer-links { display: flex; gap: 32px; }
+  .footer-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--mid); text-decoration: none; transition: color 0.3s;
+  }
+  .footer-links a:hover { color: var(--gold); }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* GOLD LINE DIVIDER */
+  .gold-divider {
+    width: 60px; height: 1px; background: var(--gold); margin: 40px 0;
+  }
+
+  /* METRIC BAND */
+  .metric-band {
+    padding: 80px 60px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-item {
+    background: var(--black);
+    padding: 48px 40px; text-align: center;
+  }
+  .metric-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 64px; font-weight: 300;
+    color: var(--gold); line-height: 1;
+    display: block;
+  }
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--mid); margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="file:///C:/Users/annar/Downloads/valoraai_2.html#" class="nav-logo">Valora<span>AI</span></a>
+  <ul class="nav-links">
+    <li><a href="file:///C:/Users/annar/Downloads/valoraai_2.html#problems">Problems</a></li>
+    <li><a href="file:///C:/Users/annar/Downloads/valoraai_2.html#solutions">Solutions</a></li>
+    <li><a href="file:///C:/Users/annar/Downloads/valoraai_2.html#process">Process</a></li>
+    <li><a href="file:///C:/Users/annar/Downloads/valoraai_2.html#contact">Contact</a></li>
+  </ul>
+  <a href="file:///C:/cdn-cgi/l/email-protection#85e4ebebe4f7edeae9e0e9ece0ebc5e2e8e4ece9abe6eae8baf6f0e7efe0e6f1b8d3e4e9eaf7e4c4cca0b7b5a8a0b7b5c7eaeaeea0b7b5e4a0b7b5d6f1f7e4f1e0e2fca0b7b5c6e4e9e9a3e7eae1fcb8cdeca0b7b5c4ebebe4f7a0b7c6a0b5c4a0b5c4cca0b7b2e1a0b7b5e9eceee0a0b7b5f1eaa0b7b5e7eaeaeea0b7b5e4a0b7b5f6f1f7e4f1e0e2fca0b7b5e6e4e9e9a0b7b5f1eaa0b7b5e1ecf6e6f0f6f6a0b7b5edeaf2a0b7b5d3e4e9eaf7e4c4cca0b7b5e6e4eba0b7b5ede0e9f5a0b7b5e8fca0b7b5f7e0e4e9a0b7b5e0f6f1e4f1e0a0b7b5e7f0f6ecebe0f6f6aba0b5c4a0b5c4cbe4e8e0a0b6c4a0b5c4c6eae8f5e4ebfca0b6c4a0b5c4c7e0f6f1a0b7b5f1ece8e0a0b7b5f1eaa0b7b5e6e4e9e9a0b6c4a0b5c4a0b5c4c9eaeaeeecebe2a0b7b5e3eaf7f2e4f7e1a0b7b5f1eaa0b7b5ede0e4f7ecebe2a0b7b5e3f7eae8a0b7b5fceaf0a4" class="nav-cta">Book a Call</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-eyebrow">Real Estate AI Agency</div>
+  <h1 class="hero-headline">
+    Close more.<br>
+    Work <em>less.</em><br>
+    Scale faster.
+  </h1>
+  <p class="hero-sub">
+    ValoraAI builds intelligent lead management systems that qualify, nurture, and convert real estate leads — automatically, 24/7.
+  </p>
+  <div class="hero-actions">
+    <a href="file:///C:/cdn-cgi/l/email-protection#04656a6a65766c6b6861686d616a446369656d682a676b693b7771666e616770395265686b7665454d21363429213634436170213634497d213634454d213634577d7770616922666b607d394c6d213634456a6a65762136472134452134454d213633692136346d6a70617661777061602136346d6a213634636170706d6a63213634656a213634454d2136346861656021363469656a65636169616a70213634777d77706169213634626b76213634697d213634766165682136346177706570612136346671776d6a6177772a2134452134454a656961213745213445476b6974656a7d213745213445546c6b6a61213745213445213445486b6b6f6d6a63213634626b7673657660213634706b213634676b6a6a6167706d6a6325" class="btn-primary">Get Your AI System</a>
+    <a href="file:///C:/Users/annar/Downloads/valoraai_2.html#solutions" class="btn-ghost">See How It Works</a>
+  </div>
+  <div class="hero-stat-row">
+    <div class="hero-stat">
+      <div class="hero-stat-num">78%</div>
+      <div class="hero-stat-label">Leads go to first<br>responder</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">8×</div>
+      <div class="hero-stat-label">More touchpoints<br>needed to close</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">60%</div>
+      <div class="hero-stat-label">Agent time wasted<br>on cold leads</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item">Instant Lead Response<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">AI Qualification<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Automated Nurture Sequences<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">CRM Unification<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Smart Lead Scoring<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Pipeline Automation<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Instant Lead Response<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">AI Qualification<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Automated Nurture Sequences<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">CRM Unification<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Smart Lead Scoring<span class="marquee-dot"> ✦</span></span>
+    <span class="marquee-item">Pipeline Automation<span class="marquee-dot"> ✦</span></span>
+  </div>
+</div>
+
+<!-- BOTTLENECKS -->
+<section class="section" id="problems">
+  <div class="section-label">The Problem</div>
+  <h2 class="section-title">7 bottlenecks killing your <em>pipeline</em></h2>
+  <div class="bottlenecks">
+    <div class="bottleneck-card">
+      <div class="card-num">01</div>
+      <div class="card-title">Speed to Lead</div>
+      <p class="card-desc">78% of deals go to the first agent to respond. Most teams reply in hours. Your AI responds in seconds — every time.</p>
+      <span class="card-tag">Critical</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">02</div>
+      <div class="card-title">Lead Qualification Waste</div>
+      <p class="card-desc">Agents spend 60%+ of their day on unqualified leads. AI filters and scores every lead before it reaches your team.</p>
+      <span class="card-tag">High Impact</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">03</div>
+      <div class="card-title">Follow-up Decay</div>
+      <p class="card-desc">It takes 8–12 touchpoints to close a deal. Most agents stop at 2. Automated sequences never give up.</p>
+      <span class="card-tag">Revenue Loss</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">04</div>
+      <div class="card-title">Fragmented CRM</div>
+      <p class="card-desc">Leads pouring in from Zillow, Realtor.com, referrals, and social — all in different places. A unified pipeline fixes this.</p>
+      <span class="card-tag">Operational</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">05</div>
+      <div class="card-title">No Nurture Intelligence</div>
+      <p class="card-desc">Leads not ready today become buyers in 6 months. Without smart nurture, they forget you and call your competitor.</p>
+      <span class="card-tag">Long-Term Revenue</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">06</div>
+      <div class="card-title">Manual Data Entry</div>
+      <p class="card-desc">Agents logging calls, notes, and status updates instead of selling. AI captures and categorizes everything automatically.</p>
+      <span class="card-tag">Time Drain</span>
+    </div>
+    <div class="bottleneck-card">
+      <div class="card-num">07</div>
+      <div class="card-title">Zero Lead Scoring</div>
+      <p class="card-desc">Treating every lead the same means missing your hottest buyers. Predictive scoring surfaces the right leads at the right time.</p>
+      <span class="card-tag">Priority Fix</span>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<div class="metric-band">
+  <div class="metric-item">
+    <span class="metric-num">2min</span>
+    <div class="metric-label">Avg AI response time</div>
+  </div>
+  <div class="metric-item">
+    <span class="metric-num">3×</span>
+    <div class="metric-label">Increase in qualified<br>appointments</div>
+  </div>
+  <div class="metric-item">
+    <span class="metric-num">40%</span>
+    <div class="metric-label">Reduction in agent<br>admin time</div>
+  </div>
+  <div class="metric-item">
+    <span class="metric-num">24/7</span>
+    <div class="metric-label">Lead coverage with<br>zero overtime</div>
+  </div>
+</div>
+
+<!-- SOLUTIONS -->
+<section class="solutions-section" id="solutions">
+  <div class="section-label">The ValoraAI System</div>
+  <h2 class="section-title">Intelligent automation, <em>built for real estate</em></h2>
+  <div class="solutions-grid">
+    <div>
+      <div class="solution-item">
+        <div class="sol-number">01</div>
+        <div class="sol-title">AI Lead Responder</div>
+        <p class="sol-desc">Instant, personalized responses to every incoming lead across all your platforms — SMS, email, and web. Within 60 seconds, always.</p>
+      </div>
+      <div class="solution-item">
+        <div class="sol-number">02</div>
+        <div class="sol-title">Smart Qualification Engine</div>
+        <p class="sol-desc">Conversational AI that asks the right questions, scores buyer intent, and delivers only hand-raiser leads to your agents.</p>
+      </div>
+      <div class="solution-item">
+        <div class="sol-number">03</div>
+        <div class="sol-title">Drip Nurture Automation</div>
+        <p class="sol-desc">Behavior-triggered sequences that keep your brand top-of-mind for 12+ months without lifting a finger. Every lead, forever nurtured.</p>
+      </div>
+    </div>
+    <div>
+      <div class="solution-item">
+        <div class="sol-number">04</div>
+        <div class="sol-title">Unified Pipeline Dashboard</div>
+        <p class="sol-desc">Every lead from every source in one clean view. No more tab-switching, no more lost contacts, no more duplicate follow-up.</p>
+      </div>
+      <div class="solution-item">
+        <div class="sol-number">05</div>
+        <div class="sol-title">Predictive Lead Scoring</div>
+        <p class="sol-desc">Machine learning models trained on real estate conversion signals. Know who to call today, who to nurture, and who to deprioritize.</p>
+      </div>
+      <div class="solution-item">
+        <div class="sol-number">06</div>
+        <div class="sol-title">AI Activity Logging</div>
+        <p class="sol-desc">Every call, text, and email auto-logged, summarized, and categorized. Your CRM always up-to-date, zero manual entry required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section class="process-section" id="process">
+  <div class="section-label">How We Work</div>
+  <h2 class="section-title">From strategy to <em>results</em> in 30 days</h2>
+  <div class="process-steps">
+    <div class="process-step">
+      <div class="step-icon">AUDIT</div>
+      <div class="step-title">Discovery</div>
+      <p class="step-desc">We map your current lead flow, identify your biggest revenue leaks, and benchmark your team's performance.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">BUILD</div>
+      <div class="step-title">Architecture</div>
+      <p class="step-desc">Custom AI system designed around your market, your team size, and your existing tools. No one-size-fits-all.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">DEPLOY</div>
+      <div class="step-title">Integration</div>
+      <p class="step-desc">Live in 2 weeks. We handle setup, training, and integration with your CRM, portals, and communication stack.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">SCALE</div>
+      <div class="step-title">Optimization</div>
+      <p class="step-desc">Weekly performance reviews, A/B tested messaging, and ongoing model tuning to compound your results over time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="section-label" style="justify-content:center">Start Now</div>
+  <h2 class="cta-title">Your competitors are<br>already <em>automating.</em></h2>
+  <p class="cta-sub">Every day without AI is leads going cold, follow-ups not happening, and deals walking out the door.</p>
+  <div style="display:flex;gap:20px;justify-content:center">
+    <a href="file:///C:/cdn-cgi/l/email-protection#0e6f60606f7c6661626b62676b604e69636f6762206d6163317d7b6c646b6d7a33586f62617c6f4f472b3c3e232b3c3e5d7a7c6f7a6b69772b3c3e4d6f62622b3c3e5c6b7f7b6b7d7a286c616a773346672b3c3e4f60606f7c2b3c4d2b3e4f2b3e4f472b3c396a2b3c3e6261786b2b3c3e7a612b3c3e6c6161652b3c3e6f2b3c3e7d7a7c6f7a6b69772b3c3e6d6f62622b3c3e7a612b3c3e626b6f7c602b3c3e63617c6b2b3c3e6f6c617b7a2b3c3e586f62617c6f4f47202b3e4f2b3e4f406f636b2b3d4f2b3e4f4d61637e6f60772b3d4f2b3e4f5e6661606b2b3d4f2b3e4f4c6b7d7a2b3c3e7a67636b2b3c3e7a612b3c3e6d6f62622b3d4f2b3e4f2b3e4f426161656760692b3c3e68617c796f7c6a2b3c3e7a612b3c3e677a2f" class="btn-primary">Book a Strategy Call</a>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Valora<span>AI</span></div>
+  <div class="footer-links">
+    <a href="https://www.linkedin.com/in/annar-holelien-olsen-5312b53b5/" target="_blank" rel="noopener">LinkedIn</a>
+    <a href="file:///C:/Users/annar/Downloads/valoraai_2.html#">Twitter</a>
+    <a href="file:///C:/Users/annar/Downloads/valoraai_2.html#">Privacy</a>
+  </div>
+  <div class="footer-copy">© 2025 ValoraAI — All rights reserved</div>
+</footer>
+
+<script data-cfasync="false" src="file:///C:/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+ </script></body></html>
