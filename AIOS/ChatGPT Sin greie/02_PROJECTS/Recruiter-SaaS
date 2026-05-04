@@ -1,0 +1,34 @@
+This project exists to generate revenue and validate a future SaaS.
+
+Target:
+Recruiters and small recruiting agencies doing outreach.
+
+Core problem:
+- Low reply rates
+- Time wasted on manual outreach
+- Inconsistent follow-ups
+
+Core outcome:
+- More replies
+- More booked meetings
+- Less manual work
+
+Current focus (Phase 1 - Validation):
+- Build simple outreach system
+- Test on real recruiters
+- Close 1–3 paying clients
+- Measure reply rate improvement
+
+What we are NOT doing:
+- Building SaaS yet
+- Creating dashboards
+- Over-engineering systems
+
+What defines success:
+- Recruiter pays for system
+- Outreach generates replies
+- At least 1 measurable improvement
+
+Next step after validation:
+- Identify patterns
+- Turn repeated workflows into SaaS features

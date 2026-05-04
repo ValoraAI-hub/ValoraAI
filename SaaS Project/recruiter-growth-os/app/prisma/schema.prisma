@@ -1,0 +1,37 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Candidate {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  role      String
+  company   String
+  createdAt DateTime @default(now())
+
+  actions   Action[]
+}
+
+model Action {
+  id              String   @id @default(cuid())
+  candidateId     String
+  messageContent  String
+  strategyType    String
+  messageVariant  String
+  signalsSnapshot Json
+  status          String
+  replyType       String?
+  replyContent    String?
+  sentAt          DateTime?
+  repliedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@index([candidateId])
+}

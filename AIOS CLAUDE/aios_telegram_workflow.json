@@ -1,0 +1,334 @@
+{
+  "name": "AIOS — Telegram Gateway",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "aios-telegram-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "AIOS Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract message data + generate session ID\nconst msg = $input.first().json;\nconst text = msg.message?.text || '';\nconst chatId = msg.message?.chat?.id;\nconst userId = msg.message?.from?.id;\nconst username = msg.message?.from?.username || 'annar';\nconst timestamp = new Date().toISOString();\nconst sessionId = `session_${userId}_${Date.now()}`;\n\n// Simple command routing\nlet intent = 'general';\nif (text.startsWith('/status')) intent = 'status';\nelse if (text.startsWith('/brief')) intent = 'brief';\nelse if (text.startsWith('/reset')) intent = 'reset';\nelse if (text.startsWith('/help')) intent = 'help';\n\nreturn [{\n  json: {\n    text,\n    chatId,\n    userId,\n    username,\n    timestamp,\n    sessionId,\n    intent,\n    wordCount: text.split(' ').length\n  }\n}];"
+      },
+      "id": "parse-message",
+      "name": "Parse Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "is-help",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "help",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "route-intent",
+      "name": "Route Intent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Message').item.json.chatId }}",
+        "text": "🤖 *AIOS — Kommandoer*\n\n`/brief` — Dagens prioriteringer\n`/status` — Systemstatus\nEller bare skriv hva du trenger.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-help",
+      "name": "Send Help",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 180],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "AIOS Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/match_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query_text",
+              "value": "={{ $('Parse Message').item.json.text }}"
+            },
+            {
+              "name": "match_threshold",
+              "value": "0.7"
+            },
+            {
+              "name": "match_count",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-context",
+      "name": "Fetch Context (Supabase RAG)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build system prompt with retrieved context\nconst userMessage = $('Parse Message').item.json.text;\nconst contextChunks = $input.first().json;\n\n// Format retrieved context\nlet contextBlock = '';\nif (Array.isArray(contextChunks) && contextChunks.length > 0) {\n  contextBlock = contextChunks\n    .map(c => `[${c.source || 'context'}]\\n${c.content}`)\n    .join('\\n\\n');\n} else {\n  // Fallback: hardcoded core identity if Supabase returns nothing\n  contextBlock = `Du er AIOS — Annars private AI Operating System.\nAnnar er 21 år, fra Lillehammer. Bygger AIOS og Recruiter Growth OS parallelt med 9-5 jobb og studier.\nKjerneprinsipp: Direkte. Kort. Ærlig. Utfordre når nødvendig. Aldri smigre.`;\n}\n\nconst systemPrompt = `Du er AIOS — Annars private AI Operating System og nærmeste strategiske partner.\n\nIdentitet og mandat:\n- Du kjenner Annar bedre enn noen ansatt\n- Du er ikke en assistent. Du er en partner som utfordrer, prioriterer og bygger\n- Kommuniser alltid på det språket Annar bruker i meldingen\n- Vær direkte. Kom til poenget. Ingen innpakning\n- Kort som standard. Langt kun når kompleksiteten krever det\n- Utfordre hvis Annar er på feil vei — det er jobben din\n- Aldri presenter unødvendige valg. Gi én klar anbefaling\n- Du er aldri en terapeut. Fokuset er alltid forretning og bygging\n\nHentet kontekst (RAG):\n${contextBlock}\n\nDato/tid: ${new Date().toISOString()}`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userMessage,\n    contextFound: Array.isArray(contextChunks) && contextChunks.length > 0\n  }\n}];"
+      },
+      "id": "build-prompt",
+      "name": "Build System Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"system\": {{ JSON.stringify($json.systemPrompt) }},\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.userMessage) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "claude-api",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst aiText = response.content?.[0]?.text || 'Ingen svar fra Claude.';\nconst inputTokens = response.usage?.input_tokens || 0;\nconst outputTokens = response.usage?.output_tokens || 0;\n\n// Rough cost estimate (claude-sonnet-4 pricing)\nconst costUSD = (inputTokens * 0.000003) + (outputTokens * 0.000015);\n\nreturn [{\n  json: {\n    aiText,\n    inputTokens,\n    outputTokens,\n    costUSD: costUSD.toFixed(6),\n    model: response.model\n  }\n}];"
+      },
+      "id": "extract-response",
+      "name": "Extract Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 380]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Message').item.json.chatId }}",
+        "text": "={{ $json.aiText }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1780, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "AIOS Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/aios_conversations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"session_id\": {{ JSON.stringify($('Parse Message').item.json.sessionId) }},\n  \"user_message\": {{ JSON.stringify($('Parse Message').item.json.text) }},\n  \"ai_response\": {{ JSON.stringify($('Extract Response').item.json.aiText) }},\n  \"intent\": {{ JSON.stringify($('Parse Message').item.json.intent) }},\n  \"input_tokens\": {{ $('Extract Response').item.json.inputTokens }},\n  \"output_tokens\": {{ $('Extract Response').item.json.outputTokens }},\n  \"cost_usd\": {{ $('Extract Response').item.json.costUSD }},\n  \"model\": {{ JSON.stringify($('Extract Response').item.json.model) }},\n  \"context_found\": {{ $('Build System Prompt').item.json.contextFound }},\n  \"created_at\": {{ JSON.stringify($('Parse Message').item.json.timestamp) }}\n}",
+        "options": {}
+      },
+      "id": "log-to-supabase",
+      "name": "Log to Supabase (Feedback Loop)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 480]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Message": {
+      "main": [
+        [
+          {
+            "node": "Route Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Intent": {
+      "main": [
+        [
+          {
+            "node": "Send Help",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Context (Supabase RAG)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Context (Supabase RAG)": {
+      "main": [
+        [
+          {
+            "node": "Build System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Extract Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Supabase (Feedback Loop)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": ["aios", "telegram", "claude"],
+  "pinData": {}
+}
