@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Candidate {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  role            String
+  company         String
+  linkedinUrl     String?
+  interactionType String
+  tags            String[]  @default([])
+  signals         Json      @default("{}")
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  status          String    @default("new")
+
+  actions           Action[]
+  conversationTurns ConversationTurn[]
+}
+
+model Action {
+  id              String    @id @default(cuid())
+  candidateId     String
+  messageContent  String
+  strategyType    String
+  messageVariant  String
+  signalsSnapshot Json
+  status          String
+  replyType       String?
+  replyContent    String?
+  sentAt          DateTime?
+  repliedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  angle           String?
+  tensionType     String?
+  keyPhrase       Json?
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model ConversationTurn {
+  id           String   @id @default(cuid())
+  candidateId  String
+  turn         Int
+  direction    String
+  content      String
+  strategyType String?
+  replyType    String?
+  createdAt    DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
