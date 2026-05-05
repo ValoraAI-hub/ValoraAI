@@ -4,12 +4,6 @@ const MODEL = "claude-sonnet-4-20250514";
 const SHORT_REPLY_CLARIFY =
   "Bare for å forstå deg riktig — hva tenker du på?";
 
-const BOOK_MESSAGES = [
-  "Har du 20 min tirsdag eller onsdag denne uken?",
-  "Når passer det best med en 20 min prat denne uken?",
-  "Sender deg en kalenderlink — hva passer best for deg?",
-] as const;
-
 type NextAction = "continue" | "clarify" | "soft_push" | "book" | "close";
 
 const NEXT_ACTION_VALUES = new Set<NextAction>([
@@ -53,6 +47,19 @@ SPRÅK OG STIL:
 - Start ALDRI med: Nice, Kult, Bra, Flott, Interessant (med stor eller liten forbokstav).
 - Maks ett spørsmål per melding — helst ikke flere enn ett tegn '?'.
 - Første setning må være en reaksjon eller en kort observasjon, ikke et spørsmål.
+- When nextAction is soft_push: tease ONE reason this could be relevant. Do NOT explain the role. Do NOT mention salary, title, or details unless the candidate asked.
+- When nextAction is book: suggest next step in one natural sentence. No explanation needed.
+- When candidate says "ja", "ok", "ja!", "kult" or any short affirmative: treat as momentum — continue forward, never clarify.
+- If you catch yourself explaining more than one thing: stop. Cut it.
+- Max 1-2 sentences per message. If candidate reply is short, your reply must be shorter.
+- Do not explain what the company does unless explicitly asked. No product descriptions, team descriptions, or role responsibilities.
+- Hint instead of explaining. One concrete detail maximum — leave the rest unsaid.
+- Once the candidate shows interest twice, move toward a short call. Do not keep exploring.
+- When candidate says "ja" or similar affirmative to a question: do not elaborate — move the conversation forward instead.
+- The value is the conversation, not the information.
+- If the candidate clearly agrees or confirms interest, move toward booking instead of asking more questions
+- Never ask "har du lyst til å høre mer" — assume interest and move forward
+- When in doubt between asking and moving forward: move forward
 
 NEXTACTION-BESLUTNINGER (sett feltet nextAction eksakt til én av: continue | clarify | soft_push | book | close):
 - Tydelig interesse OG ber om konkretheter / vil vite mer om rollen → soft_push.
@@ -163,17 +170,13 @@ function parseReplyPayload(rawText: string): ParsedAi | null {
 function applySafetyBrakes(nextAction: NextAction, confidence: number): NextAction {
   let a = nextAction;
   const c = confidence;
+  if (a === "clarify" && c < 0.5) return "continue";
   if (a === "book") {
     if (c < 0.5) return "continue";
     if (c < 0.7) return "soft_push";
   }
   if (a === "soft_push" && c < 0.5) return "continue";
   return a;
-}
-
-function randomBookLine(): string {
-  const idx = Math.floor(Math.random() * BOOK_MESSAGES.length);
-  return BOOK_MESSAGES[idx]!;
 }
 
 export async function POST(req: Request) {
@@ -194,7 +197,7 @@ export async function POST(req: Request) {
     return clarifyResponse(SHORT_REPLY_CLARIFY, 0.35);
   }
 
-  if (candidateMessage.trim().length < 5 && history.length > 0) {
+  if (!candidateMessage.trim() && history.length > 0) {
     return Response.json(
       {
         message: SHORT_REPLY_CLARIFY,
@@ -249,8 +252,15 @@ export async function POST(req: Request) {
     confidence = clampConfidence(confidence);
     nextAction = applySafetyBrakes(nextAction, confidence);
 
-    if (nextAction === "book") {
-      message = randomBookLine();
+    const msg = candidateMessage.toLowerCase().trim();
+    const positiveSignals = ["ja", "klart", "gjerne", "høres bra ut", "absolutt", "ja da", "ja!"];
+    const lastOutbound = history.filter(t => t.direction === "outbound").pop()?.content.toLowerCase() || "";
+    const wasPush = ["snakke", "prat", "rolle", "utforske", "høre mer", "møtes"].some(w => lastOutbound.includes(w));
+
+    if (positiveSignals.includes(msg) && wasPush) {
+      nextAction = "book";
+      message = "Da gir det mest mening å ta det på en rask prat egentlig";
+      confidence = 0.9;
     }
 
     return Response.json(
