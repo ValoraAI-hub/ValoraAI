@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Candidate } from "../lib/types";
 import { classNames, daysSince, getInitials } from "../lib/utils";
 import {
@@ -34,49 +34,75 @@ const STATUS_BUTTON_SPECS: { slug: CommittablePipelineSlug; label: string }[] = 
   { slug: "booked", label: "Booked" },
 ];
 
-function PipelineStatusBadge({ slug }: { slug: Exclude<PipelineSlug, "new"> }) {
-  if (slug === "booked") {
-    return (
-      <span
-        className="inline-flex shrink-0 items-center rounded-pill border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white"
-        style={{
-          borderRadius: 20,
-          backgroundColor: "#1D9E75",
-          borderColor: "#1D9E75",
-        }}
-      >
-        Booked
-      </span>
-    );
-  }
-
-  const classes =
-    slug === "sent"
-      ? "border-blue-600/35 bg-blue-600/15 text-blue-800 dark:border-blue-400/40 dark:bg-blue-400/15 dark:text-blue-200"
-      : slug === "replied"
-        ? "border-purple-600/35 bg-purple-600/15 text-purple-900 dark:border-purple-400/40 dark:bg-purple-400/15 dark:text-purple-100"
-        : slug === "no_response"
-          ? "border-border-strong bg-surface-2 text-text-muted"
-          : "border-danger/35 bg-danger-bg text-danger";
-
-  const label =
-    slug === "sent"
-      ? "Sent"
-      : slug === "replied"
-        ? "Replied"
-        : slug === "no_response"
-          ? "No response"
-          : "Not interested";
+function PipelineStatusBadge({ slug }: { slug: PipelineSlug }) {
+  const spec = (() => {
+    switch (slug) {
+      case "new":
+        return {
+          label: "New",
+          background: "#f1f5f9",
+          color: "#475569",
+          border: "1px solid #e2e8f0",
+        };
+      case "sent":
+        return {
+          label: "Sent",
+          background: "#dbeafe",
+          color: "#1d4ed8",
+          border: "1px solid #bfdbfe",
+        };
+      case "replied":
+        return {
+          label: "Replied",
+          background: "#ede9fe",
+          color: "#5b21b6",
+          border: "1px solid #ddd6fe",
+        };
+      case "no_response":
+        return {
+          label: "No response",
+          background: "#f1f5f9",
+          color: "#475569",
+          border: "1px solid #e2e8f0",
+        };
+      case "not_interested":
+        return {
+          label: "Not interested",
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        };
+      case "booked":
+        return {
+          label: "Booked",
+          background: "#d1fae5",
+          color: "#065f46",
+          border: "1px solid #a7f3d0",
+        };
+      default:
+        return {
+          label: "New",
+          background: "#f1f5f9",
+          color: "#475569",
+          border: "1px solid #e2e8f0",
+        };
+    }
+  })();
 
   return (
     <span
-      className={classNames(
-        "inline-flex shrink-0 items-center rounded-pill border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        classes
-      )}
-      style={{ borderRadius: 20 }}
+      className="inline-flex shrink-0 items-center font-medium"
+      style={{
+        fontSize: "10px",
+        fontWeight: 500,
+        padding: "2px 8px",
+        borderRadius: "100px",
+        background: spec.background,
+        color: spec.color,
+        border: spec.border,
+      }}
     >
-      {label}
+      {spec.label}
     </span>
   );
 }
@@ -113,47 +139,39 @@ function statusToneClasses(slug: CommittablePipelineSlug, active: boolean): stri
 export function CandidateCard({ candidate, onStatusChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<CommittablePipelineSlug | null>(
-    null
-  );
-  const finalizeLock = useRef(false);
+  const [trackingTooltipVisible, setTrackingTooltipVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const finalizeFromBackdropRef = useRef<() => Promise<void>>(async () => {});
 
   const committedSlug = useMemo(() => derivePipelineSlug(candidate), [candidate]);
 
   const days = daysSince(candidate.lastContactedAt);
-  const stale = days !== null && days > 5;
   const initials = getInitials(candidate.name);
   const canTrackActions = Boolean(candidate.lastAction?.id);
   const hasStoredMessage = Boolean(candidate.lastAction?.messageContent?.trim?.());
 
   const effectiveButtonSlug: CommittablePipelineSlug | null =
-    pendingStatus ?? (committedSlug === "new" ? null : committedSlug);
+    committedSlug === "new" ? null : committedSlug;
 
   const closePanelFully = () => {
     setOpen(false);
     setShowGenerator(false);
-    setPendingStatus(null);
   };
 
-  const commitPendingPatch = async (): Promise<boolean> => {
+  const persistStatusForSlug = async (slug: CommittablePipelineSlug): Promise<boolean> => {
     const actionId = candidate.lastAction?.id;
-    if (!pendingStatus) return true;
-
     if (!actionId) {
       console.warn("Cannot save outreach tracking without an action draft.");
       return false;
     }
 
-    let nextSlug: PipelineSlug;
-    let apiStat: string;
+    const currentSlug = derivePipelineSlug(candidate);
+    const clearToNew = currentSlug !== "new" && slug === currentSlug;
 
-    if (pendingStatus === committedSlug) {
-      nextSlug = "new";
-      apiStat = "DRAFT";
-    } else {
-      nextSlug = pendingStatus;
-      apiStat = pipelineSlugToApiStatus(pendingStatus);
-    }
+    const nextSlug: PipelineSlug = clearToNew ? "new" : slug;
+    const apiStat = clearToNew ? "DRAFT" : pipelineSlugToApiStatus(slug);
+
+    onStatusChanged?.(candidate.id, nextSlug);
 
     const res = await fetch(`/api/actions/${actionId}/status`, {
       method: "PATCH",
@@ -169,68 +187,81 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
 
     if (!res.ok) {
       console.error("Status commit failed", data?.error ?? res.statusText);
+      onStatusChanged?.(candidate.id, currentSlug);
       return false;
     }
 
-    onStatusChanged?.(candidate.id, nextSlug);
     return true;
   };
 
-  const finalizeFromBackdrop = async () => {
-    if (finalizeLock.current) return;
-    finalizeLock.current = true;
-    try {
-      if (pendingStatus === null) {
-        closePanelFully();
-        return;
-      }
-      const ok = await commitPendingPatch();
-      if (ok) closePanelFully();
-    } finally {
-      finalizeLock.current = false;
-    }
+  const handleStatusButtonClick = (slug: CommittablePipelineSlug) => {
+    void persistStatusForSlug(slug);
   };
+
+  const finalizeFromBackdrop = async () => {
+    closePanelFully();
+  };
+
+  finalizeFromBackdropRef.current = finalizeFromBackdrop;
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const root = cardRef.current;
+      if (!root || root.contains(e.target as Node)) return;
+      void finalizeFromBackdropRef.current();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [open]);
 
   const handleRowClick = (e: React.MouseEvent) => {
     if (isProtectedInteractiveTarget(e.target)) return;
     setOpen(true);
     setShowGenerator(false);
-    setPendingStatus(null);
   };
-
-  const toggleStatusSelection = (slug: CommittablePipelineSlug) => {
-    setPendingStatus((prev) => (prev === slug ? null : slug));
-  };
-
-  const badgeSlug = committedSlug === "new" ? null : committedSlug;
 
   return (
     <div
+      ref={cardRef}
       className={classNames(
-        "rounded-[10px] border border-border bg-surface overflow-hidden transition-shadow duration-150 hover:shadow-md card-shadow",
-        open && "relative z-[200]"
+        "rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-xs)] transition-[box-shadow,border-color] duration-150 ease-out",
+        open
+          ? "overflow-visible hover:border-border"
+          : "overflow-hidden hover:border-border-strong hover:shadow-[var(--shadow-md)]"
       )}
     >
       <div
-        className="flex cursor-pointer items-center gap-3 px-3 py-2.5"
+        className="flex cursor-pointer items-center gap-3 px-4 py-3"
         role="presentation"
         onClick={handleRowClick}
       >
         <span
           aria-hidden
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-surface-2 text-[10px] font-semibold text-text-secondary"
+          className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+          style={{
+            background: "var(--accent-surface)",
+            color: "var(--accent-text)",
+            border: "0.75px solid var(--border-strong)",
+          }}
         >
           {initials}
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="truncate text-[12px] font-medium text-text-primary">
+            <div
+              className="truncate font-medium text-[13px] text-text-primary"
+              style={{ letterSpacing: "-0.01em" }}
+            >
               {candidate.name}
             </div>
-            {badgeSlug !== null && <PipelineStatusBadge slug={badgeSlug} />}
+            <PipelineStatusBadge slug={committedSlug} />
           </div>
-          <div className="truncate text-[11px] text-text-muted mt-0.5">
+          <div
+            className="truncate text-[11px]"
+            style={{ color: "var(--text-tertiary)", marginTop: "2px" }}
+          >
             {candidate.role} <span className="opacity-50">·</span>{" "}
             {candidate.company}
           </div>
@@ -238,17 +269,35 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
 
         {days !== null && (
           <span
-            className={classNames(
-              "inline-flex items-center rounded-pill border px-2 py-0.5 text-[11px] font-medium",
-              stale
-                ? "border-warning/30 bg-warning-bg text-warning"
-                : "border-border bg-surface-2 text-text-muted"
-            )}
-            style={{ borderRadius: 20 }}
+            className="inline-flex items-center font-medium"
+            style={{
+              fontSize: "10px",
+              padding: "2px 7px",
+              borderRadius: "100px",
+              background: "var(--surface-2)",
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border)",
+            }}
           >
             {days} {days === 1 ? "day" : "days"}
           </span>
         )}
+
+        <Link
+          href={`/candidates/${candidate.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex shrink-0 items-center justify-center font-medium leading-none text-[11px] transition-colors hover:bg-surface-2"
+          style={{
+            background: "transparent",
+            color: "var(--text-secondary)",
+            padding: "5px 12px",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-strong)",
+            fontWeight: 500,
+          }}
+        >
+          Conversation
+        </Link>
 
         <button
           type="button"
@@ -256,37 +305,28 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
             e.stopPropagation();
             setOpen(true);
             setShowGenerator(true);
-            setPendingStatus(null);
           }}
-          className="inline-flex items-center gap-1.5 rounded-[7px] bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:bg-accent-hover"
+          className="inline-flex shrink-0 items-center gap-1 font-medium leading-none text-[11px] text-white transition-colors hover:bg-accent-hover"
+          style={{
+            background: "var(--accent)",
+            padding: "5px 12px",
+            borderRadius: "var(--radius-md)",
+            border: "none",
+            fontWeight: 500,
+          }}
         >
-          <SparkleIcon size={12} />
+          <span className="inline-flex" style={{ color: "inherit" }}>
+            <SparkleIcon size={12} />
+          </span>
           {hasStoredMessage ? "Regenerate" : "Generate"}
         </button>
-
-        <Link
-          href={`/candidates/${candidate.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-[7px] border border-border bg-surface px-2.5 py-1 text-[11px] text-text-muted hover:border-border-strong hover:text-text-primary"
-        >
-          Conversation
-        </Link>
       </div>
 
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-label="Close message panel"
-            className="fixed inset-0 z-[1000] bg-black/35 backdrop-blur-[1px]"
-            tabIndex={-1}
-            onClick={() => void finalizeFromBackdrop()}
-          />
-
-          <div
-            className="relative z-[1001] border-t border-border px-4 py-3.5"
-            style={{ background: "var(--surface-2)", padding: "14px" }}
-          >
+      {open ? (
+        <div
+          className="flex flex-col overflow-visible px-4 py-3.5"
+          style={{ background: "var(--surface)", padding: "14px" }}
+        >
             {showGenerator ? (
               <MessageGenerator
                 candidate={candidate}
@@ -294,12 +334,12 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                 onClose={closePanelFully}
               />
             ) : (
-              <div className="space-y-4">
+              <>
+                <div className="min-h-0 flex-1 space-y-4">
                 <div>
                   {hasStoredMessage ? (
                     <div
                       className="rounded-[10px] border border-border bg-surface px-4 py-3 mb-4"
-                      style={{ boxShadow: "var(--shadow-sm)" }}
                     >
                       <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-primary">
                         {candidate.lastAction?.messageContent}
@@ -318,9 +358,18 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowGenerator(true)}
-                    className="inline-flex items-center gap-1.5 rounded-[7px] bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:bg-accent-hover"
+                    className="inline-flex shrink-0 items-center gap-1 font-medium leading-none text-[11px] text-white transition-colors hover:bg-accent-hover"
+                    style={{
+                      background: "var(--accent)",
+                      padding: "5px 12px",
+                      borderRadius: "var(--radius-md)",
+                      border: "none",
+                      fontWeight: 500,
+                    }}
                   >
-                    <SparkleIcon size={14} />
+                    <span className="inline-flex" style={{ color: "inherit" }}>
+                      <SparkleIcon size={12} />
+                    </span>
                     {hasStoredMessage ? "Regenerate" : "Generate your first message"}
                   </button>
                 </div>
@@ -340,7 +389,10 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                             type="button"
                             disabled={!canTrackActions}
                             aria-pressed={active}
-                            onClick={() => toggleStatusSelection(slug)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusButtonClick(slug);
+                            }}
                             className={classNames(
                               "inline-flex items-center border px-2.5 py-1 text-[12px] font-medium transition",
                               statusToneClasses(slug, active)
@@ -352,15 +404,59 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                       })}
                     </div>
                   )}
-                  <p className="text-[10px] text-text-muted mt-2 opacity-50">
-                    Click outside this panel to save tracking. Choosing the same status as now clears it back to new.
-                  </p>
                 </div>
               </div>
+                {canTrackActions ? (
+                  <div className="mt-auto flex w-full shrink-0 justify-end overflow-visible pt-2">
+                    <div className="relative inline-flex items-center overflow-visible">
+                      <button
+                        type="button"
+                        aria-label="Tracking help"
+                        onMouseEnter={() => setTrackingTooltipVisible(true)}
+                        onMouseLeave={() => setTrackingTooltipVisible(false)}
+                        className="inline-flex cursor-pointer items-center justify-center font-normal leading-none"
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "50%",
+                          border: "1px solid var(--border-strong)",
+                          background: "transparent",
+                          color: "var(--text-muted)",
+                          fontSize: "10px",
+                        }}
+                      >
+                        ?
+                      </button>
+                      {trackingTooltipVisible ? (
+                        <div
+                          role="tooltip"
+                          style={{
+                            position: "absolute",
+                            right: "24px",
+                            bottom: "0",
+                            minWidth: "280px",
+                            maxWidth: "min(360px, calc(100vw - 32px))",
+                            whiteSpace: "normal",
+                            lineHeight: 1.5,
+                            background: "var(--text-primary)",
+                            color: "var(--surface)",
+                            fontSize: "11px",
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            zIndex: 50,
+                          }}
+                        >
+                          Status saves as you click. Choosing the same status
+                          clears it back to new. Click outside to close.
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
-        </>
-      )}
+      ) : null}
     </div>
   );
 }

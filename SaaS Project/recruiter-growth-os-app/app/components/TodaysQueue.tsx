@@ -94,34 +94,72 @@ export function TodaysQueue() {
       : candidates.filter((c) => matchesPipelineTab(c, activeTab));
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-8 py-8">
-      <div className="flex items-end justify-between gap-4 pb-6">
+    <div className="mx-auto w-full max-w-6xl px-8 pb-5 pt-6">
+      <div className="flex items-end justify-between gap-4 pb-4">
         <div>
-          <h1 className="text-[18px] font-semibold tracking-tight text-text-primary">
+          <h1
+            style={{
+              fontSize: "22px",
+              fontWeight: 600,
+              letterSpacing: "-0.03em",
+              color: "var(--text-primary)",
+            }}
+          >
             Today&apos;s queue
           </h1>
-          <p className="mt-1 text-[11px] text-text-muted">
+          <p
+            style={{
+              fontSize: "13px",
+              color: "var(--text-tertiary)",
+              marginTop: "2px",
+            }}
+          >
             Candidates ready for outreach today.
           </p>
         </div>
-        <span className="text-[11px] text-text-muted bg-surface border border-border rounded-[6px] px-2.5 py-1">
+        <span
+          style={{
+            fontSize: "11px",
+            padding: "4px 10px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "100px",
+            color: "var(--text-secondary)",
+          }}
+        >
           {formatLongDate()}
         </span>
       </div>
 
-      <div className="pb-6">
+      <div className="pb-4">
         <StatsBar candidates={candidates} />
       </div>
 
-      <div className="flex items-center justify-between pb-3">
-        <h2 className="text-[13px] font-medium text-text-secondary">
-          Candidates{" "}
-          <span className="text-text-muted">({candidates.length})</span>
+      <div className="mb-2 flex items-center justify-between">
+        <h2
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            color: "var(--text-tertiary)",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          Candidates ({candidates.length})
         </h2>
         <button
           type="button"
           onClick={() => setShowForm((s) => !s)}
-          className="inline-flex items-center gap-1.5 rounded-[7px] border border-border bg-surface px-3 py-1.5 text-[11px] text-text-secondary hover:border-border-strong hover:text-text-primary"
+          className="inline-flex items-center gap-1.5"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border-strong)",
+            color: "var(--text-primary)",
+            fontSize: "11px",
+            padding: "5px 12px",
+            borderRadius: "var(--radius-md)",
+            fontWeight: 500,
+          }}
         >
           <PlusIcon size={12} />
           Add candidate
@@ -148,7 +186,15 @@ export function TodaysQueue() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-0.5 bg-surface-2 border border-border rounded-[9px] p-1 w-fit mb-4">
+      <div
+        className="mb-4 flex w-fit flex-wrap gap-0.5"
+        style={{
+          background: "var(--surface-2)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-md)",
+          padding: "3px",
+        }}
+      >
         {PIPELINE_TAB_SPECS.map(({ id, label }) => {
           const count = countForPipelineTab(candidates, id);
           const isActive = activeTab === id;
@@ -157,14 +203,30 @@ export function TodaysQueue() {
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
-              className={
+              className="whitespace-nowrap border-0 font-medium leading-none"
+              style={
                 isActive
-                  ? "whitespace-nowrap rounded-[7px] px-3 py-1.5 text-[11px] font-medium bg-accent text-white"
-                  : "whitespace-nowrap rounded-[7px] px-3 py-1.5 text-[11px] text-text-muted hover:text-text-primary"
+                  ? {
+                      background: "var(--accent)",
+                      color: "#fff",
+                      borderRadius: "var(--radius-sm)",
+                      fontSize: "11px",
+                      fontWeight: 500,
+                      padding: "4px 10px",
+                    }
+                  : {
+                      background: "transparent",
+                      color: "var(--text-tertiary)",
+                      fontSize: "11px",
+                      padding: "4px 10px",
+                      fontWeight: 500,
+                    }
               }
             >
               {label}{" "}
-              <span>({count})</span>
+              <span className="opacity-70" style={{ color: "inherit" }}>
+                ({count})
+              </span>
             </button>
           );
         })}

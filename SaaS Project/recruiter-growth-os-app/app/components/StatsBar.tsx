@@ -39,20 +39,55 @@ export function StatsBar({ candidates }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+    <div
+      className="flex w-full min-w-0 overflow-hidden"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
       {cells.map((c, i) => (
         <div
           key={c.label}
-          className="rounded-[10px] border border-border bg-surface px-4 py-3"
-          style={{ boxShadow: "var(--shadow-sm)" }}
+          className="min-w-0 flex-1"
+          style={{
+            padding: "16px 20px",
+            borderRight:
+              i < cells.length - 1 ? "1px solid var(--border)" : undefined,
+          }}
         >
-          <div className="text-[10px] uppercase tracking-[.06em] font-medium text-text-muted">
+          <div
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "var(--text-tertiary)",
+              fontWeight: 500,
+              marginBottom: "6px",
+            }}
+          >
             {c.label}
           </div>
-          <div className={`mt-1.5 text-[22px] font-semibold tracking-tight leading-none ${i === 2 ? "text-accent" : "text-text-primary"}`}>
+          <div
+            style={{
+              fontSize: "26px",
+              fontWeight: 600,
+              letterSpacing: "-0.03em",
+              color: i === 2 ? "var(--accent)" : "var(--text-primary)",
+              lineHeight: 1,
+            }}
+          >
             {c.value}
           </div>
-          <div className="mt-1 text-[10px] text-text-muted opacity-60">
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-tertiary)",
+              marginTop: "4px",
+            }}
+          >
             {c.sub ?? ""}
           </div>
         </div>
