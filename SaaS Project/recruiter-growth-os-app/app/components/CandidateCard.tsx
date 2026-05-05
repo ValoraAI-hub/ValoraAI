@@ -257,10 +257,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
             setShowGenerator(true);
             setPendingStatus(null);
           }}
-          className="
-            inline-flex items-center gap-1.5 rounded-btn border px-2.5 py-1 text-[12px] font-medium
-            border-accent-border bg-accent-bg text-accent hover:brightness-[0.97]
-          "
+          className="inline-flex items-center gap-1.5 rounded-btn bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-hover"
         >
           <SparkleIcon size={12} />
           {hasStoredMessage ? "Regenerate" : "Generate"}
@@ -269,11 +266,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
         <Link
           href={`/candidates/${candidate.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="
-            inline-flex shrink-0 items-center gap-1.5 rounded-btn border border-border
-            bg-surface px-2.5 py-1 text-[12px] font-medium text-text-primary
-            hover:border-border-strong
-          "
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-btn border border-border bg-surface px-2.5 py-1 text-[12px] text-text-muted hover:border-border-strong hover:text-text-primary"
         >
           Conversation
         </Link>

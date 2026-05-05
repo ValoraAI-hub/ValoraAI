@@ -150,7 +150,7 @@ export function TodaysQueue() {
         </div>
       )}
 
-      <div className="-mx-1 flex flex-wrap gap-1 pb-4">
+      <div className="flex flex-wrap gap-1.5 pb-4 p-1 bg-surface-2 rounded-lg w-fit">
         {PIPELINE_TAB_SPECS.map(({ id, label }) => {
           const count = countForPipelineTab(candidates, id);
           const isActive = activeTab === id;
@@ -159,16 +159,14 @@ export function TodaysQueue() {
               key={id}
               type="button"
               onClick={() => setActiveTab(id)}
-              className={`
-                whitespace-nowrap rounded-md px-2.5 py-1.5 text-[12px]
-                ${isActive ? "border-b-2 font-medium text-text-primary" : "border-b-2 border-transparent text-text-muted"}
-              `}
-              style={
-                isActive ? { color: "#1D9E75", borderBottomColor: "#1D9E75" } : undefined
+              className={
+                isActive
+                  ? "whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] font-medium text-white bg-accent"
+                  : "whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] text-text-secondary hover:bg-surface-2 hover:text-text-primary"
               }
             >
               {label}{" "}
-              <span className={isActive ? "opacity-90" : "opacity-75"}>({count})</span>
+              <span>({count})</span>
             </button>
           );
         })}

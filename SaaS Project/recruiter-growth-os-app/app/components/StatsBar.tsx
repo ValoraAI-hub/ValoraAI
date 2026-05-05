@@ -31,22 +31,28 @@ export function StatsBar({ candidates }: Props) {
 
   const replyRate = sent === 0 ? 0 : Math.round((replied / sent) * 100);
 
-  const cells: Array<{ label: string; value: string }> = [
+  const cells: Array<{ label: string; value: string; trend?: string }> = [
     { label: "Total candidates", value: String(candidates.length) },
-    { label: "Reply rate", value: `${replyRate}%` },
-    { label: "Actions today", value: String(actionsToday) },
+    { label: "Reply rate", value: `${replyRate}%`, trend: "of outreach" },
+    { label: "Actions today", value: String(actionsToday), trend: "— today" },
     { label: "Positive replies", value: String(positiveReplies) },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border md:grid-cols-4">
-      {cells.map((c) => (
-        <div key={c.label} className="bg-surface px-4 py-3">
+      {cells.map((c, idx) => (
+        <div
+          key={c.label}
+          className={`bg-surface px-4 py-3 border-l-2 ${idx === 0 ? "border-l-accent" : "border-l-border-strong"}`}
+        >
           <div className="text-[11px] uppercase tracking-wide text-text-muted">
             {c.label}
           </div>
-          <div className="mt-1 text-[20px] font-semibold tracking-tight text-text-primary">
-            {c.value}
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[22px] font-semibold tracking-tight text-text-primary">
+            <span>{c.value}</span>
+            {c.trend ? (
+              <span className="text-[11px] font-normal text-text-muted">{c.trend}</span>
+            ) : null}
           </div>
         </div>
       ))}
