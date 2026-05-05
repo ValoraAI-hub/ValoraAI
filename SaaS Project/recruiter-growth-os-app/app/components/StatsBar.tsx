@@ -31,28 +31,29 @@ export function StatsBar({ candidates }: Props) {
 
   const replyRate = sent === 0 ? 0 : Math.round((replied / sent) * 100);
 
-  const cells: Array<{ label: string; value: string; trend?: string }> = [
-    { label: "Total candidates", value: String(candidates.length) },
-    { label: "Reply rate", value: `${replyRate}%`, trend: "of outreach" },
-    { label: "Actions today", value: String(actionsToday), trend: "— today" },
-    { label: "Positive replies", value: String(positiveReplies) },
+  const cells: Array<{ label: string; value: string; sub?: string }> = [
+    { label: "Total candidates", value: String(candidates.length), sub: "in pipeline" },
+    { label: "Reply rate", value: `${replyRate}%`, sub: "of outreach" },
+    { label: "Actions today", value: String(actionsToday), sub: "sent today" },
+    { label: "Positive replies", value: String(positiveReplies), sub: "this week" },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border md:grid-cols-4">
-      {cells.map((c, idx) => (
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {cells.map((c, i) => (
         <div
           key={c.label}
-          className={`bg-surface px-4 py-3 border-l-2 ${idx === 0 ? "border-l-accent" : "border-l-border-strong"}`}
+          className="rounded-[10px] border border-border bg-surface px-4 py-3"
+          style={{ boxShadow: "var(--shadow-sm)" }}
         >
-          <div className="text-[11px] uppercase tracking-wide text-text-muted">
+          <div className="text-[10px] uppercase tracking-[.06em] font-medium text-text-muted">
             {c.label}
           </div>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[22px] font-semibold tracking-tight text-text-primary">
-            <span>{c.value}</span>
-            {c.trend ? (
-              <span className="text-[11px] font-normal text-text-muted">{c.trend}</span>
-            ) : null}
+          <div className={`mt-1.5 text-[22px] font-semibold tracking-tight leading-none ${i === 2 ? "text-accent" : "text-text-primary"}`}>
+            {c.value}
+          </div>
+          <div className="mt-1 text-[10px] text-text-muted opacity-60">
+            {c.sub ?? ""}
           </div>
         </div>
       ))}

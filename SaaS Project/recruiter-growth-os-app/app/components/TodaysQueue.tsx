@@ -97,14 +97,16 @@ export function TodaysQueue() {
     <div className="mx-auto w-full max-w-5xl px-8 py-8">
       <div className="flex items-end justify-between gap-4 pb-6">
         <div>
-          <h1 className="text-[20px] font-semibold tracking-tight text-text-primary">
+          <h1 className="text-[18px] font-semibold tracking-tight text-text-primary">
             Today&apos;s queue
           </h1>
-          <p className="mt-0.5 text-[12px] text-text-muted">
+          <p className="mt-1 text-[11px] text-text-muted">
             Candidates ready for outreach today.
           </p>
         </div>
-        <span className="text-[12px] text-text-muted">{formatLongDate()}</span>
+        <span className="text-[11px] text-text-muted bg-surface border border-border rounded-[6px] px-2.5 py-1">
+          {formatLongDate()}
+        </span>
       </div>
 
       <div className="pb-6">
@@ -119,11 +121,7 @@ export function TodaysQueue() {
         <button
           type="button"
           onClick={() => setShowForm((s) => !s)}
-          className="
-            inline-flex items-center gap-1.5 rounded-btn border border-border
-            bg-surface px-2.5 py-1 text-[12px] text-text-primary
-            hover:border-border-strong
-          "
+          className="inline-flex items-center gap-1.5 rounded-[7px] border border-border bg-surface px-3 py-1.5 text-[11px] text-text-secondary hover:border-border-strong hover:text-text-primary"
         >
           <PlusIcon size={12} />
           Add candidate
@@ -150,7 +148,7 @@ export function TodaysQueue() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 pb-4 p-1 bg-surface-2 rounded-lg w-fit">
+      <div className="flex flex-wrap gap-0.5 bg-surface-2 border border-border rounded-[9px] p-1 w-fit mb-4">
         {PIPELINE_TAB_SPECS.map(({ id, label }) => {
           const count = countForPipelineTab(candidates, id);
           const isActive = activeTab === id;
@@ -161,8 +159,8 @@ export function TodaysQueue() {
               onClick={() => setActiveTab(id)}
               className={
                 isActive
-                  ? "whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] font-medium text-white bg-accent"
-                  : "whitespace-nowrap rounded-md px-3 py-1.5 text-[12px] text-text-secondary hover:bg-surface-2 hover:text-text-primary"
+                  ? "whitespace-nowrap rounded-[7px] px-3 py-1.5 text-[11px] font-medium bg-accent text-white"
+                  : "whitespace-nowrap rounded-[7px] px-3 py-1.5 text-[11px] text-text-muted hover:text-text-primary"
               }
             >
               {label}{" "}

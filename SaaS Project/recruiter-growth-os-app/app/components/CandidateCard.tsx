@@ -84,27 +84,27 @@ function PipelineStatusBadge({ slug }: { slug: Exclude<PipelineSlug, "new"> }) {
 function statusToneClasses(slug: CommittablePipelineSlug, active: boolean): string {
   if (slug === "booked") {
     return active
-      ? "border-transparent bg-[#1D9E75] text-white hover:brightness-95"
-      : "border-[#1D9E7540] bg-[#1D9E751a] text-[#1D9E75] hover:border-[#1D9E75]";
+      ? "rounded-[7px] border-transparent bg-[#1D9E75] text-white hover:brightness-95"
+      : "rounded-[7px] border-[#1D9E7540] bg-[#1D9E751a] text-[#1D9E75] hover:border-[#1D9E75]";
   }
 
   switch (slug) {
     case "sent":
       return active
-        ? "border-blue-700/55 bg-blue-600/22 text-blue-950 dark:border-blue-300/55 dark:bg-blue-400/18 dark:text-blue-50"
-        : "border-border bg-surface text-text-secondary hover:border-blue-500/40 hover:text-blue-900 dark:hover:text-blue-50";
+        ? "rounded-[7px] border-blue-700/55 bg-blue-600/22 text-blue-950 dark:border-blue-300/55 dark:bg-blue-400/18 dark:text-blue-50"
+        : "rounded-[7px] border-border-strong bg-surface text-text-secondary hover:border-blue-500/40 hover:text-blue-900 dark:hover:text-blue-50";
     case "replied":
       return active
-        ? "border-purple-700/55 bg-purple-600/22 text-purple-950 dark:border-purple-300/55 dark:bg-purple-400/18 dark:text-purple-50"
-        : "border-border bg-surface text-text-secondary hover:border-purple-500/40 hover:text-purple-900 dark:hover:text-purple-50";
+        ? "rounded-[7px] border-purple-700/55 bg-purple-600/22 text-purple-950 dark:border-purple-300/55 dark:bg-purple-400/18 dark:text-purple-50"
+        : "rounded-[7px] border-border-strong bg-surface text-text-secondary hover:border-purple-500/40 hover:text-purple-900 dark:hover:text-purple-50";
     case "no_response":
       return active
-        ? "border-border-strong bg-surface-2 text-text-primary"
-        : "border-border bg-surface text-text-secondary hover:border-border-strong hover:text-text-primary";
+        ? "rounded-[7px] border-border-strong bg-surface-2 text-text-primary"
+        : "rounded-[7px] border-border-strong bg-surface text-text-secondary hover:border-border-strong hover:text-text-primary";
     case "not_interested":
       return active
-        ? "border-danger/45 bg-danger-bg text-danger"
-        : "border-border bg-surface text-text-secondary hover:border-danger/30 hover:text-danger";
+        ? "rounded-[7px] border-danger/45 bg-danger-bg text-danger"
+        : "rounded-[7px] border-border-strong bg-surface text-text-secondary hover:border-danger/30 hover:text-danger";
     default:
       return "";
   }
@@ -205,31 +205,32 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
   const badgeSlug = committedSlug === "new" ? null : committedSlug;
 
   return (
-    <div className={classNames("rounded-card border border-border bg-surface", open && "relative z-[200]")}>
+    <div
+      className={classNames(
+        "rounded-[10px] border border-border bg-surface overflow-hidden transition-shadow duration-150 hover:shadow-md card-shadow",
+        open && "relative z-[200]"
+      )}
+    >
       <div
-        className="flex cursor-pointer items-center gap-3 px-4 py-3"
+        className="flex cursor-pointer items-center gap-3 px-3 py-2.5"
         role="presentation"
         onClick={handleRowClick}
       >
         <span
           aria-hidden
-          className="
-            inline-flex h-9 w-9 shrink-0 items-center justify-center
-            rounded-full border border-border bg-surface-2
-            text-[12px] font-semibold text-text-primary
-          "
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-border bg-surface-2 text-[10px] font-semibold text-text-secondary"
         >
           {initials}
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="truncate text-[13px] font-medium text-text-primary">
+            <div className="truncate text-[12px] font-medium text-text-primary">
               {candidate.name}
             </div>
             {badgeSlug !== null && <PipelineStatusBadge slug={badgeSlug} />}
           </div>
-          <div className="truncate text-[12px] text-text-muted">
+          <div className="truncate text-[11px] text-text-muted mt-0.5">
             {candidate.role} <span className="opacity-50">·</span>{" "}
             {candidate.company}
           </div>
@@ -257,7 +258,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
             setShowGenerator(true);
             setPendingStatus(null);
           }}
-          className="inline-flex items-center gap-1.5 rounded-btn bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-hover"
+          className="inline-flex items-center gap-1.5 rounded-[7px] bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:bg-accent-hover"
         >
           <SparkleIcon size={12} />
           {hasStoredMessage ? "Regenerate" : "Generate"}
@@ -266,7 +267,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
         <Link
           href={`/candidates/${candidate.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-btn border border-border bg-surface px-2.5 py-1 text-[12px] text-text-muted hover:border-border-strong hover:text-text-primary"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-[7px] border border-border bg-surface px-2.5 py-1 text-[11px] text-text-muted hover:border-border-strong hover:text-text-primary"
         >
           Conversation
         </Link>
@@ -282,7 +283,10 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
             onClick={() => void finalizeFromBackdrop()}
           />
 
-          <div className="relative z-[1001] border-t border-border bg-bg/40 px-4 py-4">
+          <div
+            className="relative z-[1001] border-t border-border px-4 py-3.5"
+            style={{ background: "var(--surface-2)", padding: "14px" }}
+          >
             {showGenerator ? (
               <MessageGenerator
                 candidate={candidate}
@@ -293,13 +297,20 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
               <div className="space-y-4">
                 <div>
                   {hasStoredMessage ? (
-                    <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-primary">
-                      {candidate.lastAction?.messageContent}
-                    </p>
+                    <div
+                      className="rounded-[10px] border border-border bg-surface px-4 py-3 mb-4"
+                      style={{ boxShadow: "var(--shadow-sm)" }}
+                    >
+                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-primary">
+                        {candidate.lastAction?.messageContent}
+                      </p>
+                    </div>
                   ) : (
-                    <p className="text-[13px] text-text-muted">
-                      No draft message saved yet — generate one to get started.
-                    </p>
+                    <div className="rounded-[10px] border border-dashed border-border bg-surface px-4 py-3 mb-4">
+                      <p className="text-[13px] text-text-muted">
+                        No draft message saved yet — generate one to get started.
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -307,10 +318,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowGenerator(true)}
-                    className="
-                      inline-flex items-center gap-1.5 rounded-btn border border-accent-border bg-accent-bg
-                      px-3 py-1.5 text-[12px] font-medium text-accent hover:brightness-[0.97]
-                    "
+                    className="inline-flex items-center gap-1.5 rounded-[7px] bg-accent px-2.5 py-1 text-[11px] font-medium text-white hover:bg-accent-hover"
                   >
                     <SparkleIcon size={14} />
                     {hasStoredMessage ? "Regenerate" : "Generate your first message"}
@@ -323,7 +331,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                       Track outreach status once a message draft exists on this candidate.
                     </p>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {STATUS_BUTTON_SPECS.map(({ slug, label }) => {
                         const active = effectiveButtonSlug === slug;
                         return (
@@ -334,7 +342,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                             aria-pressed={active}
                             onClick={() => toggleStatusSelection(slug)}
                             className={classNames(
-                              "inline-flex items-center rounded-btn border px-2.5 py-1 text-[12px] font-medium transition",
+                              "inline-flex items-center border px-2.5 py-1 text-[12px] font-medium transition",
                               statusToneClasses(slug, active)
                             )}
                           >
@@ -344,7 +352,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
                       })}
                     </div>
                   )}
-                  <p className="text-[11px] leading-relaxed text-text-muted">
+                  <p className="text-[10px] text-text-muted mt-2 opacity-50">
                     Click outside this panel to save tracking. Choosing the same status as now clears it back to new.
                   </p>
                 </div>
