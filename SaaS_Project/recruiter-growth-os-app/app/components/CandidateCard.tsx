@@ -35,74 +35,68 @@ const STATUS_BUTTON_SPECS: { slug: CommittablePipelineSlug; label: string }[] = 
 ];
 
 function PipelineStatusBadge({ slug }: { slug: PipelineSlug }) {
-  const spec = (() => {
+  const { label, toneClass } = (() => {
     switch (slug) {
       case "new":
         return {
           label: "New",
-          background: "#f1f5f9",
-          color: "#475569",
-          border: "1px solid #e2e8f0",
+          toneClass:
+            "bg-[#F1F5F9] text-[#475569] dark:bg-[#1C2235] dark:text-[#94A3B8]",
         };
       case "sent":
         return {
           label: "Sent",
-          background: "#dbeafe",
-          color: "#1d4ed8",
-          border: "1px solid #bfdbfe",
+          toneClass:
+            "bg-[#DBEAFE] text-[#1D4ED8] dark:bg-[#1E3A5F] dark:text-[#93C5FD]",
         };
       case "replied":
         return {
           label: "Replied",
-          background: "#ede9fe",
-          color: "#5b21b6",
-          border: "1px solid #ddd6fe",
+          toneClass:
+            "bg-[#EDE9FE] text-[#5B21B6] dark:bg-[#4C1D95] dark:text-[#DDD6FE]",
         };
       case "no_response":
         return {
           label: "No response",
-          background: "#f1f5f9",
-          color: "#475569",
-          border: "1px solid #e2e8f0",
+          toneClass:
+            "bg-[#F1F5F9] text-[#475569] dark:bg-[#1C2235] dark:text-[#94A3B8]",
         };
       case "not_interested":
         return {
           label: "Not interested",
-          background: "#fee2e2",
-          color: "#991b1b",
-          border: "1px solid #fecaca",
+          toneClass:
+            "bg-[#FEE2E2] text-[#991B1B] dark:bg-[#7F1D1D] dark:text-[#FCA5A5]",
         };
       case "booked":
         return {
           label: "Booked",
-          background: "#d1fae5",
-          color: "#065f46",
-          border: "1px solid #a7f3d0",
+          toneClass:
+            "bg-[#D1FAE5] text-[#065F46] dark:bg-[#14532D] dark:text-[#86EFAC]",
         };
       default:
         return {
           label: "New",
-          background: "#f1f5f9",
-          color: "#475569",
-          border: "1px solid #e2e8f0",
+          toneClass:
+            "bg-[#F1F5F9] text-[#475569] dark:bg-[#1C2235] dark:text-[#94A3B8]",
         };
     }
   })();
 
   return (
     <span
-      className="inline-flex shrink-0 items-center font-medium"
+      className={classNames(
+        "inline-flex shrink-0 items-center font-medium border-0",
+        toneClass
+      )}
       style={{
-        fontSize: "10px",
+        fontSize: "8px",
         fontWeight: 500,
-        padding: "2px 8px",
-        borderRadius: "100px",
-        background: spec.background,
-        color: spec.color,
-        border: spec.border,
+        padding: "0px 4px",
+        lineHeight: 1.2,
+        borderRadius: "3px",
       }}
     >
-      {spec.label}
+      {label}
     </span>
   );
 }
@@ -318,7 +312,7 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
           <span className="inline-flex" style={{ color: "inherit" }}>
             <SparkleIcon size={12} />
           </span>
-          {hasStoredMessage ? "Regenerate" : "Generate"}
+          Generate
         </button>
       </div>
 

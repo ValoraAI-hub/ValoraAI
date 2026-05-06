@@ -373,28 +373,6 @@ type VariantOutput = {
 };
 type Pair = { variant1: VariantOutput; variant2: VariantOutput };
 
-const PAIR_CACHE_TTL_MS = 60_000;
-const pairCache = new Map<string, { value: Pair; expiresAt: number }>();
-const inFlight = new Map<string, Promise<Pair>>();
-
-function getCacheKey(body: Body): string {
-  return JSON.stringify({
-    n: body.name ?? "",
-    r: body.role ?? "",
-    c: body.company ?? "",
-    d: Number(body.daysSinceContact ?? 0),
-    h: body.candidateHook ?? "",
-    k: body.keySellingPoint ?? "",
-    a: body.angle ?? "",
-  });
-}
-
-function pruneCache(now: number) {
-  for (const [k, v] of pairCache) {
-    if (v.expiresAt <= now) pairCache.delete(k);
-  }
-}
-
 function extractJsonBlob(raw: string): string {
   let s = raw.trim();
   s = s.replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim();
@@ -523,33 +501,6 @@ async function generatePair(body: Body, apiKey: string): Promise<Pair> {
   };
 }
 
-async function getOrGeneratePair(body: Body, apiKey: string): Promise<Pair> {
-  const now = Date.now();
-  pruneCache(now);
-
-  const key = getCacheKey(body);
-  const cached = pairCache.get(key);
-  if (cached && cached.expiresAt > now) return cached.value;
-
-  const existing = inFlight.get(key);
-  if (existing) return existing;
-
-  const promise = generatePair(body, apiKey)
-    .then((pair) => {
-      pairCache.set(key, {
-        value: pair,
-        expiresAt: Date.now() + PAIR_CACHE_TTL_MS,
-      });
-      return pair;
-    })
-    .finally(() => {
-      inFlight.delete(key);
-    });
-
-  inFlight.set(key, promise);
-  return promise;
-}
-
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -573,7 +524,7 @@ export async function POST(req: Request) {
 
     let pair: Pair;
     try {
-      pair = await getOrGeneratePair(body, apiKey);
+      pair = await generatePair(body, apiKey);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to generate message";
