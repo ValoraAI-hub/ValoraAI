@@ -88,6 +88,10 @@ export function TodaysQueue() {
     );
   };
 
+  const handleDeleted = (candidateId: string) => {
+    setCandidates((cs) => cs.filter((c) => c.id !== candidateId));
+  };
+
   const filteredCandidates =
     activeTab === "all"
       ? candidates
@@ -274,6 +278,7 @@ export function TodaysQueue() {
               key={c.id}
               candidate={c}
               onStatusChanged={handleStatusChanged}
+              onDeleted={handleDeleted}
             />
           ))}
         </div>

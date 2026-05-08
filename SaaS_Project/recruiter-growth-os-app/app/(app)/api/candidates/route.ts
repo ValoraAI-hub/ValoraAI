@@ -85,7 +85,7 @@ export async function GET() {
       },
     });
 
-    const result = candidates.map((c) => {
+    const result = (candidates ?? []).map((c) => {
       const { actions, ...rest } = c;
       return {
         ...rest,
@@ -93,7 +93,7 @@ export async function GET() {
       };
     });
 
-    return Response.json(result, { status: 200 });
+    return NextResponse.json(result ?? [], { status: 200 });
   } catch (err) {
     console.error("GET /api/candidates failed:", err);
     return Response.json(

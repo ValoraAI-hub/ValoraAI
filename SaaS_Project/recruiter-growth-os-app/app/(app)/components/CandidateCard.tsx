@@ -10,12 +10,14 @@ import {
   pipelineSlugToApiStatus,
   type PipelineSlug,
 } from "../lib/pipeline-status";
-import { SparkleIcon } from "./icons";
+import { SparkleIcon, TrashIcon } from "./icons";
 import { MessageGenerator } from "./MessageGenerator";
 
 type Props = {
   candidate: Candidate;
   onStatusChanged?: (candidateId: string, newStatus: PipelineSlug) => void;
+  onDeleted?: (candidateId: string) => void;
+  selectedCandidateId?: string | null;
 };
 
 function isProtectedInteractiveTarget(el: EventTarget | null): boolean {
@@ -130,12 +132,23 @@ function statusToneClasses(slug: CommittablePipelineSlug, active: boolean): stri
   }
 }
 
-export function CandidateCard({ candidate, onStatusChanged }: Props) {
+export function CandidateCard({
+  candidate,
+  onStatusChanged,
+  onDeleted,
+  selectedCandidateId,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
   const [trackingTooltipVisible, setTrackingTooltipVisible] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const finalizeFromBackdropRef = useRef<() => Promise<void>>(async () => {});
+
+  const showDeleteBox =
+    isHovered &&
+    !open &&
+    (!selectedCandidateId || selectedCandidateId === candidate.id);
 
   const committedSlug = useMemo(() => derivePipelineSlug(candidate), [candidate]);
 
@@ -150,6 +163,13 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
   const closePanelFully = () => {
     setOpen(false);
     setShowGenerator(false);
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this candidate?")) return;
+    const res = await fetch(`/api/candidates/${candidate.id}`, { method: "DELETE" });
+    if (res.ok) onDeleted?.(candidate.id);
   };
 
   const persistStatusForSlug = async (slug: CommittablePipelineSlug): Promise<boolean> => {
@@ -215,16 +235,23 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
     setShowGenerator(false);
   };
 
+  const easing = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+
   return (
     <div
       ref={cardRef}
-      className={classNames(
-        "rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-xs)] transition-[box-shadow,border-color] duration-150 ease-out",
-        open
-          ? "overflow-visible hover:border-border"
-          : "overflow-hidden hover:border-border-strong hover:shadow-[var(--shadow-md)]"
-      )}
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      <div
+        className={classNames(
+          "rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-xs)] transition-[box-shadow,border-color] duration-150 ease-out",
+          open
+            ? "overflow-visible hover:border-border"
+            : "overflow-hidden hover:border-border-strong hover:shadow-[var(--shadow-md)]"
+        )}
+      >
       <div
         className="flex cursor-pointer items-center gap-3 px-4 py-3"
         role="presentation"
@@ -451,6 +478,37 @@ export function CandidateCard({ candidate, onStatusChanged }: Props) {
             )}
           </div>
       ) : null}
+      </div>
+
+      <button
+        type="button"
+        aria-label="Delete candidate"
+        aria-hidden={!showDeleteBox}
+        tabIndex={showDeleteBox ? 0 : -1}
+        onClick={(e) => void handleDelete(e)}
+        className="flex items-center justify-center transition-all hover:brightness-75"
+        style={{
+          position: "absolute",
+          top: showDeleteBox ? "-12px" : "-4px",
+          right: "-12px",
+          width: "24px",
+          height: "24px",
+          background: "var(--surface)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          border: "none",
+          padding: 0,
+          borderRadius: "50%",
+          color: "var(--danger)",
+          cursor: "pointer",
+          lineHeight: 0,
+          opacity: showDeleteBox ? 1 : 0,
+          pointerEvents: showDeleteBox ? "auto" : "none",
+          transition: `all 200ms ${easing}`,
+          zIndex: 10,
+        }}
+      >
+        <TrashIcon size={12} />
+      </button>
     </div>
   );
 }
