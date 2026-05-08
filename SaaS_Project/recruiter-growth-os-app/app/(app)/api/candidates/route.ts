@@ -1,11 +1,20 @@
 import { Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
-const PLACEHOLDER_USER_ID = "test-user";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = user.id;
+
     const body = await req.json();
 
     const {
@@ -36,7 +45,7 @@ export async function POST(req: Request) {
 
     const candidate = await prisma.candidate.create({
       data: {
-        userId: PLACEHOLDER_USER_ID,
+        userId,
         name,
         role,
         company,

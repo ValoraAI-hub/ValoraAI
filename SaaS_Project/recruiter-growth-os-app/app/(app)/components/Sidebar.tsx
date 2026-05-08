@@ -1,5 +1,6 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -34,6 +35,12 @@ const USER = { name: "Test User", initials: "TU" };
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   return (
     <aside
@@ -154,6 +161,13 @@ export function Sidebar() {
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => void handleLogout()}
+          className="mt-2 w-full rounded-[var(--radius-sm)] border border-border px-2 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-surface hover:text-text-primary"
+        >
+          Log out
+        </button>
       </div>
     </aside>
   );
