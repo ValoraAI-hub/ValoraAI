@@ -3,9 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --bg: #f5f3ef;
+  --bg: #f8f8f8;
   --surface: #ffffff;
-  --surface-2: #faf9f7;
+  --surface-2: #f7f5f2;
+  --sidebar-bg: #ffffff;
   --border: #dddddd;
   --border-strong: #c8c8c8;
   --text-primary: #0a0a0a;
@@ -27,6 +28,7 @@
   --bg: #0f0f0f;
   --surface: #161616;
   --surface-2: #1e1e1e;
+  --sidebar-bg: var(--surface-2);
   --border: #252525;
   --border-strong: #303030;
   --text-primary: #ededed;
