@@ -44,7 +44,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className="sticky top-0 flex h-screen w-[240px] shrink-0 flex-col border-r border-border bg-surface-2"
+      className="sticky top-0 flex h-screen w-[240px] shrink-0 flex-col border-r border-border"
+      style={{ backgroundColor: 'var(--sidebar-bg)' }}
     >
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-start justify-between gap-2">
