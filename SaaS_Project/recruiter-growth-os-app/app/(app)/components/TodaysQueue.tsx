@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { Candidate } from "../lib/types";
 import {
   derivePipelineSlug,
@@ -50,6 +51,7 @@ function countForPipelineTab(candidatesList: Candidate[], tab: PipelineTab): num
 }
 
 export function TodaysQueue() {
+  const pathname = usePathname();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,10 @@ export function TodaysQueue() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    load();
+  }, [pathname, load]);
 
   const handleCreated = (created: Candidate) => {
     setCandidates((cs) => [created, ...cs]);
@@ -279,6 +285,7 @@ export function TodaysQueue() {
               candidate={c}
               onStatusChanged={handleStatusChanged}
               onDeleted={handleDeleted}
+              onGenerated={load}
             />
           ))}
         </div>

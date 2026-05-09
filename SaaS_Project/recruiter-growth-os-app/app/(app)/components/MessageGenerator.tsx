@@ -27,12 +27,14 @@ type Props = {
   onClose: () => void;
   /** Hides outbound tracking buttons so host can defer status commits (e.g. CandidateCard). */
   suppressTrackingControls?: boolean;
+  onGenerated?: () => void;
 };
 
 export function MessageGenerator({
   candidate,
   onClose,
   suppressTrackingControls = false,
+  onGenerated,
 }: Props) {
   const [active, setActive] = useState<1 | 2>(1);
   const [variants, setVariants] = useState<Record<1 | 2, VariantState>>({
@@ -118,6 +120,7 @@ export function MessageGenerator({
             action,
           },
         }));
+        onGenerated?.();
       } catch (err) {
         if (cancelled) return;
         setVariants((v) => ({

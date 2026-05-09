@@ -79,6 +79,9 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       include: {
         actions: {
+          where: {
+            messageContent: { not: "" },
+          },
           orderBy: { createdAt: "desc" },
           take: 1,
         },

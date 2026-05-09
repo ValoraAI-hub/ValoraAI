@@ -1,41 +1,41 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { Candidate } from "../lib/types";
 
 type Props = {
   candidates: Candidate[];
 };
 
-function startOfToday(): number {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
+type Stats = {
+  totalCandidates: number;
+  replyRate: number;
+  actionsToday: number;
+  positiveReplies: number;
+};
 
-export function StatsBar({ candidates }: Props) {
-  const todayStart = startOfToday();
-  let sent = 0;
-  let replied = 0;
-  let actionsToday = 0;
-  let positiveReplies = 0;
+const DEFAULT_STATS: Stats = {
+  totalCandidates: 0,
+  replyRate: 0,
+  actionsToday: 0,
+  positiveReplies: 0,
+};
 
-  for (const c of candidates) {
-    const a = c.lastAction;
-    if (!a) continue;
+export function StatsBar(_props: Props) {
+  const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
 
-    if (a.status === "SENT" || a.status === "REPLIED") sent += 1;
-    if (a.status === "REPLIED") replied += 1;
-    if (a.replyType === "POSITIVE") positiveReplies += 1;
-
-    const created = new Date(a.createdAt).getTime();
-    if (!Number.isNaN(created) && created >= todayStart) actionsToday += 1;
-  }
-
-  const replyRate = sent === 0 ? 0 : Math.round((replied / sent) * 100);
+  useEffect(() => {
+    fetch("/api/stats", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: Stats) => setStats(data))
+      .catch(() => {});
+  }, []);
 
   const cells: Array<{ label: string; value: string; sub?: string }> = [
-    { label: "Total candidates", value: String(candidates.length), sub: "in pipeline" },
-    { label: "Reply rate", value: `${replyRate}%`, sub: "of outreach" },
-    { label: "Actions today", value: String(actionsToday), sub: "sent today" },
-    { label: "Positive replies", value: String(positiveReplies), sub: "this week" },
+    { label: "Total candidates", value: String(stats.totalCandidates), sub: "in pipeline" },
+    { label: "Reply rate", value: `${stats.replyRate}%`, sub: "of outreach" },
+    { label: "Actions today", value: String(stats.actionsToday), sub: "sent today" },
+    { label: "Positive replies", value: String(stats.positiveReplies), sub: "this week" },
   ];
 
   return (

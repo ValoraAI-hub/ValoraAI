@@ -26,6 +26,7 @@ type CandidateSummary = {
   name: string;
   role: string;
   company: string;
+  status: string;
   lastAction?: LastAction | null;
 };
 
@@ -141,6 +142,7 @@ export default function CandidateConversationPage() {
   >(null);
   const [savingOutbound, setSavingOutbound] = useState(false);
 
+  const [candidateStatus, setCandidateStatus] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [actionOutcome, setActionOutcome] = useState<string | null>(null);
@@ -173,6 +175,7 @@ export default function CandidateConversationPage() {
     const rows = Array.isArray(data) ? data : [];
     const found = rows.find((c: CandidateSummary) => c.id === id) ?? null;
     setCandidate(found);
+    setCandidateStatus(found?.status ?? null);
     const last = found?.lastAction ?? null;
     setActionId(last?.id ?? null);
     setActionStatus(last?.status ?? null);
@@ -326,6 +329,7 @@ export default function CandidateConversationPage() {
       setEditedReply(message);
       setNextAction(na ?? "continue");
       setConfidence(Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0.5);
+      await loadCandidate();
     } catch (e) {
       setPanelError(e instanceof Error ? e.message : "Generate failed");
     } finally {
@@ -356,6 +360,7 @@ export default function CandidateConversationPage() {
         });
         const patchBody = await patch.json().catch(() => ({}));
         if (!patch.ok) throw new Error((patchBody as { error?: string })?.error ?? "Status update failed");
+        setCandidateStatus("booked");
       }
 
       resetReplyDraftOnly();
@@ -510,6 +515,10 @@ export default function CandidateConversationPage() {
                 placeholder:text-text-muted focus:border-border-strong focus:outline-none
               "
               placeholder="Lim inn eller skriv meldingen du sendte..."
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
             />
             <button
               type="button"

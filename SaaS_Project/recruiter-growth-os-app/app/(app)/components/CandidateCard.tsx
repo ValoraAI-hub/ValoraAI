@@ -18,6 +18,7 @@ type Props = {
   onStatusChanged?: (candidateId: string, newStatus: PipelineSlug) => void;
   onDeleted?: (candidateId: string) => void;
   selectedCandidateId?: string | null;
+  onGenerated?: () => void;
 };
 
 function isProtectedInteractiveTarget(el: EventTarget | null): boolean {
@@ -137,6 +138,7 @@ export function CandidateCard({
   onStatusChanged,
   onDeleted,
   selectedCandidateId,
+  onGenerated,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
@@ -204,6 +206,20 @@ export function CandidateCard({
       onStatusChanged?.(candidate.id, currentSlug);
       return false;
     }
+
+    const candidateStatusMap: Record<PipelineSlug, string> = {
+      new: "new",
+      sent: "contacted",
+      replied: "replied",
+      no_response: "contacted",
+      not_interested: "rejected",
+      booked: "booked",
+    };
+    await fetch(`/api/candidates/${candidate.id}/status`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: candidateStatusMap[nextSlug] }),
+    });
 
     return true;
   };
@@ -353,6 +369,7 @@ export function CandidateCard({
                 candidate={candidate}
                 suppressTrackingControls
                 onClose={closePanelFully}
+                onGenerated={onGenerated}
               />
             ) : (
               <>
