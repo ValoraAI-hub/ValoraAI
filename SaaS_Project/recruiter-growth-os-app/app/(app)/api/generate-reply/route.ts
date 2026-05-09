@@ -4,14 +4,14 @@ const MODEL = "claude-sonnet-4-20250514";
 const SHORT_REPLY_CLARIFY =
   "Bare for å forstå deg riktig — hva tenker du på?";
 
-type NextAction = "continue" | "clarify" | "soft_push" | "book" | "close";
+type NextAction = "continue" | "clarify" | "soft_push" | "book" | "nurture";
 
 const NEXT_ACTION_VALUES = new Set<NextAction>([
   "continue",
   "clarify",
   "soft_push",
   "book",
-  "close",
+  "nurture",
 ]);
 
 type HistoryTurn = {
@@ -61,29 +61,55 @@ SPRÅK OG STIL:
 - Never ask "har du lyst til å høre mer" — assume interest and move forward
 - When in doubt between asking and moving forward: move forward
 
-NEXTACTION-BESLUTNINGER (sett feltet nextAction eksakt til én av: continue | clarify | soft_push | book | close):
-- Tydelig interesse OG ber om konkretheter / vil vite mer om rollen → soft_push.
-- Uttalt enighet, vil booke, spør om tid / neste steg → book.
-- Kort positiv puls (f.eks. «kult», «lyder interessant», kort bekreftelse) uten konkret hinder → continue.
-- Tvil, begrensninger, «må tenke», uklar intensjon → clarify.
-- Tydelig avslag eller avvisende («ikke aktuelt», «passer ikke») → close.
-- Tidlig tråd (ca. 1–2 runder totalt utvekslet) → prioriter helst continue eller clarify; book og soft_push må være svært begrunnede.
-- Mellom-fase (3–4 innholdsrike runder med tegn på interesse) → soft_push kan være passende ved passende signaler.
-- Sen fase med sterk konkret interesse → book kan være passende.
+NEXTACTION:
+You must return nextAction as one of: continue, clarify, soft_push, book, nurture.
+
+continue   → keep the conversation going, no agenda
+clarify    → something is unclear, ask one specific question
+soft_push  → interest has been signalled, move forward gently
+book       → candidate is ready, suggest a next step
+nurture    → not now, keep the relationship warm
+
+You must also return readiness as a float between 0.0 and 1.0.
+readiness reflects how ready the candidate appears to progress.
+
+replyType (positive/neutral/negative) describes what the candidate said.
+nextAction describes what the system should do.
+These are separate. replyType does not determine nextAction alone.
+
+READINESS-INTENSITY FOR soft_push:
+If you decide nextAction = soft_push, the message must follow ONE of these depending on readiness:
+- If readiness < 0.5:
+  Candidate is in early interest phase. Ask one curious question only.
+  No pressure, no agenda, no mention of next steps.
+- If readiness >= 0.5:
+  Candidate shows clear interest. Ask one question and include
+  a natural opening toward a next step. Do not mention meeting explicitly.
 
 EKSTRAREGEL OM OUTPUT:
 Svaret ditt må være KUN ett JSON-objekt, ingen forklaring før eller etter (ingen markdown fences).
 Feltene skal hete eksakt:
 - message: strengen som skal sendes til kandidaten ( norsk, kort, i tråd med alle reglene over )
-- nextAction: én av continue | clarify | soft_push | book | close
+- nextAction: én av continue | clarify | soft_push | book | nurture
 - confidence: et tall mellom 0.0 og 1.0 som reflekterer hvor trygg du er på valget av nextAction
+- readiness: et tall mellom 0.0 og 1.0 som reflekterer hvor klar kandidaten virker for å gå videre
 
-NextAction-feltet må alltid gjenspeile reglene ovenfor; confidence reflekterer usikkerhet om den klassifikasjonen.`;
+NextAction-feltet må alltid gjenspeile reglene ovenfor; confidence reflekterer usikkerhet om klassifikasjonen, readiness reflekterer kandidatens fremdrift.`;
 
-function clarifyResponse(message: string, confidence = 0.45): Response {
+function clarifyResponse(
+  message: string,
+  confidence = 0.45,
+  readiness = 0.3
+): Response {
   const c = clampConfidence(confidence);
+  const r = clampReadiness(readiness);
   return Response.json(
-    { message, nextAction: "clarify" satisfies NextAction, confidence: c },
+    {
+      message,
+      nextAction: "clarify" satisfies NextAction,
+      confidence: c,
+      readiness: r,
+    },
     { status: 200 }
   );
 }
@@ -91,6 +117,12 @@ function clarifyResponse(message: string, confidence = 0.45): Response {
 function clampConfidence(n: number): number {
   if (!Number.isFinite(n)) return 0.5;
   return Math.min(1, Math.max(0, n));
+}
+
+function clampReadiness(n: unknown): number {
+  const num = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(num)) return 0.5;
+  return Math.min(1, Math.max(0, num));
 }
 
 function isHistoryTurn(row: unknown): row is HistoryTurn {
@@ -126,7 +158,7 @@ ${formatHistory(history)}
 ===== NYESTE SVAR FRA KANDIDAT =====
 "${candidateMessage.trim()}"
 
-Opprett nå ett JSON-objekt med feltene message, nextAction og confidence akkurat som beskrevet i systeminstruksen. Ikke legg til markdown eller tekst rundt JSON.`;
+Opprett nå ett JSON-objekt med feltene message, nextAction, confidence og readiness akkurat som beskrevet i systeminstruksen. Ikke legg til markdown eller tekst rundt JSON.`;
 }
 
 /** Extract first {...} blob that looks like JSON. */
@@ -140,15 +172,19 @@ function extractJsonObject(raw: string): string | null {
 function coerceNextAction(v: unknown): NextAction | null {
   if (typeof v !== "string") return null;
   const s = v.trim().toLowerCase().replace(/\s+/g, "_");
-  const mapped =
-    s === "soft-push" ? "soft_push" : (s as NextAction);
-  return NEXT_ACTION_VALUES.has(mapped as NextAction) ? (mapped as NextAction) : null;
+  let mapped: string = s;
+  if (mapped === "soft-push") mapped = "soft_push";
+  if (mapped === "close") mapped = "nurture";
+  return NEXT_ACTION_VALUES.has(mapped as NextAction)
+    ? (mapped as NextAction)
+    : null;
 }
 
 type ParsedAi = {
   message: string;
   nextAction: NextAction;
   confidence: number;
+  readiness: number;
 };
 
 function parseReplyPayload(rawText: string): ParsedAi | null {
@@ -159,24 +195,39 @@ function parseReplyPayload(rawText: string): ParsedAi | null {
     const obj = JSON.parse(extracted) as Record<string, unknown>;
     const message = typeof obj.message === "string" ? obj.message.trim() : "";
     const na = coerceNextAction(obj.nextAction);
-    let confidence = clampConfidence(typeof obj.confidence === "number" ? obj.confidence : Number(obj.confidence));
+    const confidence = clampConfidence(
+      typeof obj.confidence === "number" ? obj.confidence : Number(obj.confidence)
+    );
+    const readiness = clampReadiness(obj.readiness);
     if (!message || !na) return null;
-    return { message, nextAction: na, confidence };
+    return { message, nextAction: na, confidence, readiness };
   } catch {
     return null;
   }
 }
 
-function applySafetyBrakes(nextAction: NextAction, confidence: number): NextAction {
-  let a = nextAction;
-  const c = confidence;
-  if (a === "clarify" && c < 0.5) return "continue";
-  if (a === "book") {
-    if (c < 0.5) return "continue";
-    if (c < 0.7) return "soft_push";
+function applySafetyBrakes(
+  nextAction: NextAction,
+  confidence: number
+): NextAction {
+  const original = nextAction;
+  let result: NextAction = nextAction;
+
+  if (confidence < 0.4) {
+    result = "continue";
   }
-  if (a === "soft_push" && c < 0.5) return "continue";
-  return a;
+
+  if (result === "book" && confidence < 0.7) {
+    result = "soft_push";
+  }
+
+  if (result !== original) {
+    console.log(
+      `Safety brake: ${original} → ${result} (confidence: ${confidence.toFixed(2)})`
+    );
+  }
+
+  return result;
 }
 
 export async function POST(req: Request) {
@@ -203,6 +254,7 @@ export async function POST(req: Request) {
         message: SHORT_REPLY_CLARIFY,
         nextAction: "clarify",
         confidence: clampConfidence(0.75),
+        readiness: clampReadiness(0.3),
       },
       { status: 200 }
     );
@@ -248,8 +300,9 @@ export async function POST(req: Request) {
       return clarifyResponse(SHORT_REPLY_CLARIFY, 0.4);
     }
 
-    let { message, nextAction, confidence } = parsed;
+    let { message, nextAction, confidence, readiness } = parsed;
     confidence = clampConfidence(confidence);
+    readiness = clampReadiness(readiness);
     nextAction = applySafetyBrakes(nextAction, confidence);
 
     const msg = candidateMessage.toLowerCase().trim();
@@ -261,10 +314,11 @@ export async function POST(req: Request) {
       nextAction = "book";
       message = "Da gir det mest mening å ta det på en rask prat egentlig";
       confidence = 0.9;
+      readiness = 0.95;
     }
 
     return Response.json(
-      { message: message.trim(), nextAction, confidence },
+      { message: message.trim(), nextAction, confidence, readiness },
       { status: 200 }
     );
   } catch (err) {

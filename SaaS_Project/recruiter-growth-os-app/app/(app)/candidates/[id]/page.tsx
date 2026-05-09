@@ -15,11 +15,28 @@ type ConversationTurn = {
   createdAt: string;
 };
 
+type LastAction = {
+  id: string;
+  status: string;
+  outcome: string | null;
+};
+
 type CandidateSummary = {
   id: string;
   name: string;
   role: string;
   company: string;
+  lastAction?: LastAction | null;
+};
+
+const OUTCOME_VALUES = ["replied", "ghosted", "booked", "rejected"] as const;
+type Outcome = (typeof OUTCOME_VALUES)[number];
+
+const OUTCOME_LABELS: Record<Outcome, string> = {
+  replied: "Replied",
+  ghosted: "Ghosted",
+  booked: "Booked",
+  rejected: "Rejected",
 };
 
 type NextAction = "continue" | "clarify" | "soft_push" | "book" | "close";
@@ -124,6 +141,12 @@ export default function CandidateConversationPage() {
   >(null);
   const [savingOutbound, setSavingOutbound] = useState(false);
 
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const [actionOutcome, setActionOutcome] = useState<string | null>(null);
+  const [outcomeSaving, setOutcomeSaving] = useState<Outcome | null>(null);
+  const [outcomeError, setOutcomeError] = useState<string | null>(null);
+
   const threadRef = useRef<HTMLDivElement>(null);
 
   const sortedTurns = useMemo(
@@ -150,6 +173,10 @@ export default function CandidateConversationPage() {
     const rows = Array.isArray(data) ? data : [];
     const found = rows.find((c: CandidateSummary) => c.id === id) ?? null;
     setCandidate(found);
+    const last = found?.lastAction ?? null;
+    setActionId(last?.id ?? null);
+    setActionStatus(last?.status ?? null);
+    setActionOutcome(last?.outcome ?? null);
   }, [id]);
 
   useEffect(() => {
@@ -186,6 +213,30 @@ export default function CandidateConversationPage() {
     setConfidence(null);
     setReplyOverride(null);
   }, []);
+
+  const handleSetOutcome = async (outcome: Outcome) => {
+    if (!actionId) return;
+    const previous = actionOutcome;
+    setOutcomeError(null);
+    setOutcomeSaving(outcome);
+    setActionOutcome(outcome);
+    try {
+      const res = await fetch("/api/actions", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ actionId, outcome }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data as { error?: string })?.error ?? "Could not save outcome");
+      }
+    } catch (e) {
+      setActionOutcome(previous);
+      setOutcomeError(e instanceof Error ? e.message : "Could not save outcome");
+    } finally {
+      setOutcomeSaving(null);
+    }
+  };
 
   const handleClearConversation = async () => {
     setPanelError(null);
@@ -370,6 +421,34 @@ export default function CandidateConversationPage() {
       {panelError && (
         <div className="mb-3 rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-[12px] text-danger">
           {panelError}
+        </div>
+      )}
+
+      {actionId && actionStatus === "SENT" && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[12px] text-text-muted">Outcome:</span>
+          {actionOutcome ? (
+            <span className="inline-flex rounded-btn border border-border-strong bg-surface-2 px-2.5 py-1 text-[12px] font-medium text-text-primary">
+              {OUTCOME_LABELS[actionOutcome as Outcome] ?? actionOutcome}
+            </span>
+          ) : (
+            <>
+              {OUTCOME_VALUES.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => void handleSetOutcome(value)}
+                  disabled={outcomeSaving !== null}
+                  className="inline-flex rounded-btn border border-border bg-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:border-border-strong disabled:opacity-50"
+                >
+                  {OUTCOME_LABELS[value]}
+                </button>
+              ))}
+            </>
+          )}
+          {outcomeError && (
+            <span className="text-[12px] text-danger">{outcomeError}</span>
+          )}
         </div>
       )}
 

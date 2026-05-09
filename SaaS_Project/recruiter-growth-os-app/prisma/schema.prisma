@@ -42,6 +42,7 @@ model Action {
   angle           String?
   tensionType     String?
   keyPhrase       Json?
+  outcome         String?
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 }
