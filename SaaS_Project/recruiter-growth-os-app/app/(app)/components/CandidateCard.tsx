@@ -371,6 +371,7 @@ export function CandidateCard({
                 suppressTrackingControls
                 onClose={closePanelFully}
                 onGenerated={onGenerated}
+                onStatusChanged={onStatusChanged}
               />
             ) : (
               <>

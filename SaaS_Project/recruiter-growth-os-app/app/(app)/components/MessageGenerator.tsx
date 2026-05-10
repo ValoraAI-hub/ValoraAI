@@ -28,6 +28,7 @@ type Props = {
   /** Hides outbound tracking buttons so host can defer status commits (e.g. CandidateCard). */
   suppressTrackingControls?: boolean;
   onGenerated?: () => void;
+  onStatusChanged?: (candidateId: string, newStatus: string) => void;
 };
 
 export function MessageGenerator({
@@ -35,6 +36,7 @@ export function MessageGenerator({
   onClose,
   suppressTrackingControls = false,
   onGenerated,
+  onStatusChanged,
 }: Props) {
   const [active, setActive] = useState<1 | 2>(1);
   const [variants, setVariants] = useState<Record<1 | 2, VariantState>>({
@@ -147,6 +149,23 @@ export function MessageGenerator({
       await navigator.clipboard.writeText(text);
       setCopiedVariant(variant);
       setTimeout(() => setCopiedVariant(null), 1500);
+      const action = variants[variant].action;
+      if (action?.id) {
+        await Promise.all([
+          fetch(`/api/actions/${action.id}/status`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ status: "SENT" }),
+          }),
+          fetch(`/api/candidates/${candidate.id}/status`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ status: "contacted" }),
+          }),
+        ]);
+        onStatusChanged?.(candidate.id, "sent");
+        onGenerated?.();
+      }
     } catch {
       // ignore
     }
