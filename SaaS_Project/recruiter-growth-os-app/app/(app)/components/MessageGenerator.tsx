@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Action, Candidate, GeneratedMessage } from "../lib/types";
+import type { PipelineSlug } from "../lib/pipeline-status";
 import { classNames, daysSince } from "../lib/utils";
 import { CheckIcon, CloseIcon, CopyIcon, SparkleIcon } from "./icons";
 import { TrackingControls } from "./TrackingControls";
@@ -28,7 +29,7 @@ type Props = {
   /** Hides outbound tracking buttons so host can defer status commits (e.g. CandidateCard). */
   suppressTrackingControls?: boolean;
   onGenerated?: () => void;
-  onStatusChanged?: (candidateId: string, newStatus: string) => void;
+  onStatusChanged?: (candidateId: string, newStatus: PipelineSlug) => void;
 };
 
 export function MessageGenerator({
