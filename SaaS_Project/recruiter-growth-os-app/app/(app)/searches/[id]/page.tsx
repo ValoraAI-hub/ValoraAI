@@ -108,6 +108,122 @@ export default function SearchDetailPage() {
   const [savingStructured, setSavingStructured] = useState(false);
   const [structuredError, setStructuredError] = useState<string | null>(null);
 
+  const [candidateNotes, setCandidateNotes] = useState<Record<string, string>>(
+    {}
+  );
+  const [candidateAnalysis, setCandidateAnalysis] = useState<
+    Record<
+      string,
+      {
+        keySellingPoint: string;
+        candidateHook: string;
+        tension: string;
+      }
+    >
+  >({});
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [savingSignalsId, setSavingSignalsId] = useState<string | null>(null);
+  const [savedSignalsId, setSavedSignalsId] = useState<string | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<Record<string, string>>({});
+
+  const handleAnalyzeCandidate = async (candidateId: string) => {
+    const notes = (candidateNotes[candidateId] ?? "").trim();
+    if (!notes) return;
+    setAnalyzeError((prev) => {
+      const next = { ...prev };
+      delete next[candidateId];
+      return next;
+    });
+    setAnalyzingId(candidateId);
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/analyze`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rawNotes: notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          (data as { error?: string })?.error ?? "Failed to analyze"
+        );
+      }
+      setCandidateAnalysis((prev) => ({
+        ...prev,
+        [candidateId]: {
+          keySellingPoint:
+            typeof data.keySellingPoint === "string"
+              ? data.keySellingPoint
+              : "",
+          candidateHook:
+            typeof data.candidateHook === "string" ? data.candidateHook : "",
+          tension: typeof data.tension === "string" ? data.tension : "",
+        },
+      }));
+    } catch (e) {
+      setAnalyzeError((prev) => ({
+        ...prev,
+        [candidateId]:
+          e instanceof Error ? e.message : "Failed to analyze candidate",
+      }));
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const updateAnalysisField = (
+    candidateId: string,
+    field: "keySellingPoint" | "candidateHook" | "tension",
+    value: string
+  ) => {
+    setCandidateAnalysis((prev) => {
+      const current =
+        prev[candidateId] ?? {
+          keySellingPoint: "",
+          candidateHook: "",
+          tension: "",
+        };
+      return {
+        ...prev,
+        [candidateId]: { ...current, [field]: value },
+      };
+    });
+  };
+
+  const handleSaveSignals = async (candidateId: string) => {
+    const analysis = candidateAnalysis[candidateId];
+    if (!analysis) return;
+    setSavingSignalsId(candidateId);
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/signals`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          keySellingPoint: analysis.keySellingPoint,
+          candidateHook: analysis.candidateHook,
+          tension: analysis.tension,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          (data as { error?: string })?.error ?? "Failed to save signals"
+        );
+      }
+      setSavedSignalsId(candidateId);
+      setTimeout(() => {
+        setSavedSignalsId((curr) => (curr === candidateId ? null : curr));
+      }, 1500);
+    } catch (e) {
+      setAnalyzeError((prev) => ({
+        ...prev,
+        [candidateId]:
+          e instanceof Error ? e.message : "Failed to save signals",
+      }));
+    } finally {
+      setSavingSignalsId(null);
+    }
+  };
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = useCallback(() => {
@@ -500,25 +616,129 @@ export default function SearchDetailPage() {
           </p>
         ) : (
           <ul className="space-y-2">
-            {search.candidates.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-surface-2 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <Link
-                    href={`/candidates/${c.id}`}
-                    className="block truncate text-[13px] font-medium text-text-primary hover:text-accent"
-                  >
-                    {c.name}
-                  </Link>
-                  <div className="truncate text-[11px] text-text-muted">
-                    {c.role} <span className="opacity-50">·</span> {c.company}
+            {search.candidates.map((c) => {
+              const notes = candidateNotes[c.id] ?? "";
+              const analysis = candidateAnalysis[c.id];
+              const isAnalyzing = analyzingId === c.id;
+              const isSavingSignals = savingSignalsId === c.id;
+              const wasSaved = savedSignalsId === c.id;
+              const errorMsg = analyzeError[c.id];
+
+              return (
+                <li
+                  key={c.id}
+                  className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/candidates/${c.id}`}
+                        className="block truncate text-[13px] font-medium text-text-primary hover:text-accent"
+                      >
+                        {c.name}
+                      </Link>
+                      <div className="truncate text-[11px] text-text-muted">
+                        {c.role} <span className="opacity-50">·</span>{" "}
+                        {c.company}
+                      </div>
+                    </div>
+                    <StatusPill status={c.status} />
                   </div>
-                </div>
-                <StatusPill status={c.status} />
-              </li>
-            ))}
+
+                  <textarea
+                    value={notes}
+                    onChange={(e) =>
+                      setCandidateNotes((prev) => ({
+                        ...prev,
+                        [c.id]: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    placeholder="Lim inn LinkedIn-profil, CV-utdrag eller notater..."
+                    className="text-[12px] w-full border border-border rounded-md px-2 py-1.5 bg-bg text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:border-border-strong mt-2"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => void handleAnalyzeCandidate(c.id)}
+                    disabled={isAnalyzing || notes.trim() === ""}
+                    className="text-[11px] border border-border px-2 py-0.5 rounded-md bg-surface text-text-secondary mt-1.5 hover:border-border-strong disabled:opacity-50"
+                  >
+                    {isAnalyzing ? "Analyzing..." : "Analyze candidate"}
+                  </button>
+
+                  {errorMsg && (
+                    <div className="mt-1.5 text-[11px] text-danger">
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  {analysis && (
+                    <div className="mt-3 space-y-2">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-text-muted">
+                          Why relevant
+                        </div>
+                        <input
+                          value={analysis.keySellingPoint}
+                          onChange={(e) =>
+                            updateAnalysisField(
+                              c.id,
+                              "keySellingPoint",
+                              e.target.value
+                            )
+                          }
+                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-text-muted">
+                          What motivates them
+                        </div>
+                        <input
+                          value={analysis.candidateHook}
+                          onChange={(e) =>
+                            updateAnalysisField(
+                              c.id,
+                              "candidateHook",
+                              e.target.value
+                            )
+                          }
+                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-text-muted">
+                          Tension
+                        </div>
+                        <input
+                          value={analysis.tension}
+                          onChange={(e) =>
+                            updateAnalysisField(c.id, "tension", e.target.value)
+                          }
+                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveSignals(c.id)}
+                          disabled={isSavingSignals}
+                          className="text-[11px] border border-border px-2 py-0.5 rounded-md bg-surface text-text-secondary hover:border-border-strong disabled:opacity-50"
+                        >
+                          {isSavingSignals ? "Saving..." : "Save signals"}
+                        </button>
+                        {wasSaved && (
+                          <span className="text-[11px] text-accent">
+                            Saved ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
