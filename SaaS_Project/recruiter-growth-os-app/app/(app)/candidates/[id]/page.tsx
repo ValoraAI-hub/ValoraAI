@@ -141,6 +141,10 @@ export default function CandidateConversationPage() {
     "POSITIVE" | "NEUTRAL" | "NEGATIVE" | null
   >(null);
   const [savingOutbound, setSavingOutbound] = useState(false);
+  const [savingOutbound2, setSavingOutbound2] = useState(false);
+  const [savingInbound, setSavingInbound] = useState(false);
+  const [replyCopied, setReplyCopied] = useState(false);
+  const [showOutcomeReminder, setShowOutcomeReminder] = useState(false);
 
   const [candidateStatus, setCandidateStatus] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -277,11 +281,14 @@ export default function CandidateConversationPage() {
     setPanelError(null);
     const text = outboundDraft.trim();
     if (!text) return;
+    setSavingOutbound2(true);
     try {
       await postTurn({ direction: "outbound", content: text });
       setOutboundDraft("");
     } catch (e) {
       setPanelError(e instanceof Error ? e.message : "Could not log message");
+    } finally {
+      setSavingOutbound2(false);
     }
   };
 
@@ -289,12 +296,15 @@ export default function CandidateConversationPage() {
     setPanelError(null);
     const text = inboundDraft.trim();
     if (!text) return;
+    setSavingInbound(true);
     try {
       await postTurn({ direction: "inbound", content: text });
       setInboundDraft("");
       resetReplyDraftOnly();
     } catch (e) {
       setPanelError(e instanceof Error ? e.message : "Could not log reply");
+    } finally {
+      setSavingInbound(false);
     }
   };
 
@@ -449,6 +459,11 @@ export default function CandidateConversationPage() {
                   {OUTCOME_LABELS[value]}
                 </button>
               ))}
+              {showOutcomeReminder && !actionOutcome && (
+                <p className="text-[11px] text-text-muted mt-1">
+                  Husk å velge utfall når kandidaten svarer.
+                </p>
+              )}
             </>
           )}
           {outcomeError && (
@@ -523,12 +538,13 @@ export default function CandidateConversationPage() {
             <button
               type="button"
               onClick={() => void handleLogOutbound()}
+              disabled={savingOutbound2}
               className="
                 mt-3 inline-flex items-center rounded-btn border border-accent-border bg-accent-bg px-3 py-1.5
-                text-[12px] font-medium text-accent hover:brightness-[0.97]
+                text-[12px] font-medium text-accent hover:brightness-[0.97] disabled:opacity-45
               "
             >
-              Logg sendt melding
+              {savingOutbound2 ? "Sender…" : "Logg sendt melding"}
             </button>
           </div>
         )}
@@ -551,12 +567,13 @@ export default function CandidateConversationPage() {
             <button
               type="button"
               onClick={() => void handleLogInbound()}
+              disabled={savingInbound}
               className="
                 mt-3 inline-flex items-center rounded-btn border border-border bg-surface px-3 py-1.5 text-[12px]
-                font-medium text-text-primary hover:border-border-strong
+                font-medium text-text-primary hover:border-border-strong disabled:opacity-45
               "
             >
-              Logg svar
+              {savingInbound ? "Sender…" : "Logg svar"}
             </button>
           </div>
         )}
@@ -583,9 +600,40 @@ export default function CandidateConversationPage() {
 
             {hasGenerateDraft ? (
               <div className="space-y-3">
-                <label className="block text-[12px] font-medium text-text-secondary">
-                  Forslag til svar (rediger før du sender)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[12px] font-medium text-text-secondary">
+                    Forslag til svar (rediger før du sender)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        await navigator.clipboard.writeText(editedReply);
+                        setReplyCopied(true);
+                        setTimeout(() => setReplyCopied(false), 1500);
+                        if (actionId) {
+                          await Promise.all([
+                            fetch(`/api/actions/${actionId}/status`, {
+                              method: "PATCH",
+                              headers: { "content-type": "application/json" },
+                              body: JSON.stringify({ status: "SENT" }),
+                            }),
+                            fetch(`/api/candidates/${id}/status`, {
+                              method: "PATCH",
+                              headers: { "content-type": "application/json" },
+                              body: JSON.stringify({ status: "contacted" }),
+                            }),
+                          ]);
+                          setActionStatus("SENT");
+                          setShowOutcomeReminder(true);
+                        }
+                      })();
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 border border-border rounded-md bg-surface-2 text-text-muted hover:text-text-primary hover:border-border-strong"
+                  >
+                    {replyCopied ? "Copied" : "Copy"}
+                  </button>
+                </div>
                 <textarea
                   value={editedReply}
                   onChange={(e) => setEditedReply(e.target.value)}
@@ -643,7 +691,7 @@ export default function CandidateConversationPage() {
                     font-medium text-text-primary hover:border-border-strong disabled:opacity-45
                   "
                 >
-                  Lagre som sendt
+                  {savingOutbound ? "Sender…" : "Lagre som sendt"}
                 </button>
               </div>
             ) : null}

@@ -142,6 +142,7 @@ export function CandidateCard({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [trackingTooltipVisible, setTrackingTooltipVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -376,12 +377,49 @@ export function CandidateCard({
                 <div className="min-h-0 flex-1 space-y-4">
                 <div>
                   {hasStoredMessage ? (
-                    <div
-                      className="rounded-[10px] border border-border bg-surface px-4 py-3 mb-4"
-                    >
-                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-primary">
-                        {candidate.lastAction?.messageContent}
-                      </p>
+                    <div className="relative mb-4">
+                      <div
+                        className="rounded-[10px] border border-border bg-surface px-4 py-3"
+                      >
+                        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-primary">
+                          {candidate.lastAction?.messageContent}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void (async () => {
+                            await navigator.clipboard.writeText(candidate.lastAction?.messageContent ?? "");
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 1500);
+                            if (candidate.lastAction?.id) {
+                              await Promise.all([
+                                fetch(`/api/actions/${candidate.lastAction.id}/status`, {
+                                  method: "PATCH",
+                                  headers: { "content-type": "application/json" },
+                                  body: JSON.stringify({ status: "SENT" }),
+                                }),
+                                fetch(`/api/candidates/${candidate.id}/status`, {
+                                  method: "PATCH",
+                                  headers: { "content-type": "application/json" },
+                                  body: JSON.stringify({ status: "contacted" }),
+                                }),
+                              ]);
+                              onStatusChanged?.(candidate.id, "sent");
+                            }
+                          })();
+                        }}
+                        className="absolute top-2 right-2 inline-flex items-center gap-1 font-medium text-[11px] text-text-muted hover:text-text-primary hover:border-border-strong"
+                        style={{
+                          padding: "3px 8px",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-md)",
+                          background: "var(--surface-2)",
+                        }}
+                      >
+                        {copied ? "Copied" : "Copy"}
+                      </button>
                     </div>
                   ) : (
                     <div className="rounded-[10px] border border-dashed border-border bg-surface px-4 py-3 mb-4">
