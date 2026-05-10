@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       tags,
       signals,
       daysSinceContact,
+      searchId,
     } = body ?? {};
 
     if (!name || !role || !company || !interactionType) {
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
         tags: Array.isArray(tags) ? tags : [],
         signals: signals ?? {},
         lastContactedAt,
+        searchId: searchId ?? undefined,
       },
     });
 

@@ -101,6 +101,7 @@ export default function SearchDetailPage() {
   const [rawDraft, setRawDraft] = useState("");
   const [savingBrief, setSavingBrief] = useState(false);
   const [briefError, setBriefError] = useState<string | null>(null);
+  const [briefOpen, setBriefOpen] = useState(false);
 
   const [editingStructured, setEditingStructured] = useState(false);
   const [structuredDraft, setStructuredDraft] = useState("");
@@ -285,6 +286,52 @@ export default function SearchDetailPage() {
         </div>
       )}
 
+      <section className="mb-4 rounded-card border border-border bg-surface">
+        <button
+          type="button"
+          onClick={() => setBriefOpen((v) => !v)}
+          aria-expanded={briefOpen}
+          className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-surface-2"
+        >
+          <span className="text-[12px] font-medium text-text-secondary">
+            Role brief
+          </span>
+          <span className="text-[11px] text-text-muted">
+            {briefOpen ? "▼" : "▶"}
+          </span>
+        </button>
+        {briefOpen && (
+          <div className="border-t border-border px-4 py-3">
+            <textarea
+              value={rawDraft}
+              onChange={(e) => setRawDraft(e.target.value)}
+              rows={8}
+              placeholder="Paste job description, salary range, team info, recruiter notes, hiring manager comments — anything relevant."
+              className="w-full resize-y rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:border-border-strong focus:outline-none"
+            />
+            {briefError && (
+              <div className="mt-2 text-[12px] text-danger">{briefError}</div>
+            )}
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => void handleSaveBrief()}
+                disabled={savingBrief || rawDraft.trim() === ""}
+                className="inline-flex items-center text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                style={{
+                  background: "var(--accent)",
+                  padding: "6px 12px",
+                  borderRadius: "var(--radius-md)",
+                  border: "none",
+                }}
+              >
+                {savingBrief ? "Saving…" : "Save brief"}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
       {search?.extractionStatus === "extracting" && (
         <div className="mb-4 rounded-card border border-border bg-surface-2 px-3 py-2 text-[12px] text-text-muted">
           Analyzing role context…
@@ -425,40 +472,6 @@ export default function SearchDetailPage() {
           Extraction failed. Try saving the brief again to retry.
         </div>
       )}
-
-      <section className="mb-4 rounded-card border border-border bg-surface p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <label className="block text-[12px] font-medium text-text-secondary">
-            Role brief
-          </label>
-        </div>
-        <textarea
-          value={rawDraft}
-          onChange={(e) => setRawDraft(e.target.value)}
-          rows={8}
-          placeholder="Paste job description, salary range, team info, recruiter notes, hiring manager comments — anything relevant."
-          className="w-full resize-y rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:border-border-strong focus:outline-none"
-        />
-        {briefError && (
-          <div className="mt-2 text-[12px] text-danger">{briefError}</div>
-        )}
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => void handleSaveBrief()}
-            disabled={savingBrief || rawDraft.trim() === ""}
-            className="inline-flex items-center text-[12px] font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-            style={{
-              background: "var(--accent)",
-              padding: "6px 12px",
-              borderRadius: "var(--radius-md)",
-              border: "none",
-            }}
-          >
-            {savingBrief ? "Saving…" : "Save brief"}
-          </button>
-        </div>
-      </section>
 
       <section className="rounded-card border border-border bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
