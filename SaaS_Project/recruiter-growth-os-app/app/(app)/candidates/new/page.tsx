@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 type SearchSummary = {
   id: string;
@@ -10,7 +10,7 @@ type SearchSummary = {
   company: string;
 };
 
-export default function NewCandidatePage() {
+function AddCandidateForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchId = searchParams.get("searchId") ?? "";
@@ -239,5 +239,13 @@ export default function NewCandidatePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function AddCandidatePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-text-muted">Loading…</div>}>
+      <AddCandidateForm />
+    </Suspense>
   );
 }
