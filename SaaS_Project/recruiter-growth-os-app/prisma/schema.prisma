@@ -21,9 +21,24 @@ model Candidate {
   lastContactedAt DateTime?
   createdAt       DateTime  @default(now())
   status          String    @default("new")
+  searchId        String?
 
   actions           Action[]
   conversationTurns ConversationTurn[]
+  search            Search?            @relation(fields: [searchId], references: [id])
+}
+
+model Search {
+  id                String      @id @default(cuid())
+  userId            String
+  title             String
+  company           String
+  rawContext        String?     @db.Text
+  structuredContext Json?
+  extractionStatus  String      @default("idle")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  candidates        Candidate[]
 }
 
 model Action {

@@ -19,8 +19,27 @@ type NavItem = {
   disabled?: boolean;
 };
 
+function BriefcaseIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS: NavItem[] = [
   { label: "Today's queue", href: "/", icon: InboxIcon },
+  { label: "Searches", href: "/searches", icon: BriefcaseIcon },
   { label: "Candidates", href: "/candidates", icon: UsersIcon },
   { label: "Actions", href: "/actions", icon: ZapIcon },
   {

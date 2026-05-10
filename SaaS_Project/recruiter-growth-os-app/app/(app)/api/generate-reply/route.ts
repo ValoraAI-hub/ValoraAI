@@ -1,5 +1,44 @@
+import { prisma } from "@/lib/prisma";
+
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
+
+const HALLUCINATION_GUARD = `
+
+FAKTAREGELEN (KRITISK):
+Hvis ROLE KNOWLEDGE er tilgjengelig ovenfor — bruk KUN den infoen når kandidaten spør om rolle, selskap, stack, lønn, team eller kultur. Ikke suppléer med gjetninger.
+Hvis ROLE KNOWLEDGE ikke er tilgjengelig eller feltet er null — si at recruiteren vil følge opp med den infoen. Aldri finn på rolledetaljer.`;
+
+async function fetchRoleContext(candidateId: string | undefined): Promise<string> {
+  if (!candidateId || typeof candidateId !== "string") return "";
+  try {
+    const candidateRecord = await prisma.candidate.findFirst({
+      where: { id: candidateId },
+      select: { searchId: true },
+    });
+    if (!candidateRecord?.searchId) return "";
+
+    const search = await prisma.search.findFirst({
+      where: { id: candidateRecord.searchId },
+      select: { structuredContext: true, extractionStatus: true },
+    });
+
+    if (
+      search?.structuredContext &&
+      search.extractionStatus === "ready"
+    ) {
+      return `\n\nROLE KNOWLEDGE (use this as ground truth — never improvise or hallucinate role facts):\n${JSON.stringify(
+        search.structuredContext,
+        null,
+        2
+      )}`;
+    }
+    return "";
+  } catch (err) {
+    console.error("fetchRoleContext failed:", err);
+    return "";
+  }
+}
 
 const SHORT_REPLY_CLARIFY =
   "Bare for å forstå deg riktig — hva tenker du på?";
@@ -60,6 +99,24 @@ SPRÅK OG STIL:
 - If the candidate clearly agrees or confirms interest, move toward booking instead of asking more questions
 - Never ask "har du lyst til å høre mer" — assume interest and move forward
 - When in doubt between asking and moving forward: move forward
+
+FAKTAREGELEN (KRITISK — ALDRI BRYT DENNE):
+Systemet kjenner IKKE til:
+- lønn, kompensasjon eller benefits
+- teamstørrelse eller teamstruktur
+- tech stack eller verktøy
+- arbeidskultur eller verdier
+- produktet, roadmap eller vekstplaner
+- konkrete ansvarsområder i rollen
+
+Hvis kandidaten spør om noe av dette:
+- IKKE finn på eller gjett
+- IKKE presenter generisk info som fakta
+- Generer i stedet et utkast der recruiteren fyller inn den ekte informasjonen
+- Bruk tydelige plassholdere i klammeparentes: [teamstørrelse], [tech stack], [lønn], [fordel]
+- Eksempel: "Vi har [teamstørrelse] i engineering, jobber med [tech stack] — og [konkret fordel]."
+- Maks én setning med plassholdere. Resten er recruiterens jobb.
+- nextAction skal settes til "clarify" når du bruker denne regelen
 
 NEXTACTION:
 You must return nextAction as one of: continue, clarify, soft_push, book, nurture.
@@ -267,6 +324,7 @@ export async function POST(req: Request) {
   }
 
   const userPrompt = buildUserPrompt(candidateId, candidateMessage, history);
+  const roleContext = await fetchRoleContext(candidateId);
 
   let rawText = "";
   try {
@@ -280,7 +338,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT + roleContext + HALLUCINATION_GUARD,
         messages: [{ role: "user", content: userPrompt }],
       }),
     });

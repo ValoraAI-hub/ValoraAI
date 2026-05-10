@@ -1,5 +1,44 @@
+import { prisma } from "@/lib/prisma";
+
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
+
+const HALLUCINATION_GUARD = `
+
+FAKTAREGELEN (KRITISK):
+Hvis ROLE KNOWLEDGE er tilgjengelig ovenfor — bruk KUN den infoen når kandidaten spør om rolle, selskap, stack, lønn, team eller kultur. Ikke suppléer med gjetninger.
+Hvis ROLE KNOWLEDGE ikke er tilgjengelig eller feltet er null — si at recruiteren vil følge opp med den infoen. Aldri finn på rolledetaljer.`;
+
+async function fetchRoleContext(candidateId: string | undefined): Promise<string> {
+  if (!candidateId || typeof candidateId !== "string") return "";
+  try {
+    const candidateRecord = await prisma.candidate.findFirst({
+      where: { id: candidateId },
+      select: { searchId: true },
+    });
+    if (!candidateRecord?.searchId) return "";
+
+    const search = await prisma.search.findFirst({
+      where: { id: candidateRecord.searchId },
+      select: { structuredContext: true, extractionStatus: true },
+    });
+
+    if (
+      search?.structuredContext &&
+      search.extractionStatus === "ready"
+    ) {
+      return `\n\nROLE KNOWLEDGE (use this as ground truth — never improvise or hallucinate role facts):\n${JSON.stringify(
+        search.structuredContext,
+        null,
+        2
+      )}`;
+    }
+    return "";
+  } catch (err) {
+    console.error("fetchRoleContext failed:", err);
+    return "";
+  }
+}
 
 const MAX_MESSAGE_LENGTH = 300;
 
@@ -262,6 +301,7 @@ type Body = {
   keySellingPoint?: string;
   candidateHook?: string;
   angle?: Angle;
+  candidateId?: string;
 };
 
 type AnthropicResponse = {
@@ -434,7 +474,11 @@ function cleanVariantMessage(raw: string): string {
   return enforceMaxLength(filtered, MAX_MESSAGE_LENGTH);
 }
 
-async function generatePair(body: Body, apiKey: string): Promise<Pair> {
+async function generatePair(
+  body: Body,
+  apiKey: string,
+  roleContext: string
+): Promise<Pair> {
   const days = Number(body.daysSinceContact ?? 0);
   const seed = Math.floor(Date.now() / 1000);
   const t1 = getTensionForVariant(1, seed);
@@ -452,7 +496,7 @@ async function generatePair(body: Body, apiKey: string): Promise<Pair> {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 800,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + roleContext + HALLUCINATION_GUARD,
       messages: [{ role: "user", content: userPrompt }],
     }),
   });
@@ -522,9 +566,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const roleContext = await fetchRoleContext(body.candidateId);
+
     let pair: Pair;
     try {
-      pair = await generatePair(body, apiKey);
+      pair = await generatePair(body, apiKey, roleContext);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to generate message";
