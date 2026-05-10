@@ -75,7 +75,7 @@ async function runExtraction(searchId: string, rawContext: string, apiKey: strin
     await prisma.search.update({
       where: { id: searchId },
       data: {
-        structuredContext: parsed,
+        structuredContext: parsed as import('@prisma/client').Prisma.InputJsonValue,
         extractionStatus: "ready",
       },
     });
