@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
 
-const SYSTEM_PROMPT = `You are analyzing a candidate profile for a recruiter. Return ONLY a valid JSON object with exactly these fields:
+const SYSTEM_PROMPT = `Svar alltid på norsk (bokmål). You are analyzing a candidate profile for a recruiter. Return ONLY a valid JSON object with exactly these fields:
 {
   keySellingPoint: string (one sentence: why this candidate is relevant for outreach — specific, no fluff),
   candidateHook: string (one sentence: what likely motivates this person based on their background),

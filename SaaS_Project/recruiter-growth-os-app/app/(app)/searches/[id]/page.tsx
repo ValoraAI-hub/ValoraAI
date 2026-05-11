@@ -679,7 +679,7 @@ export default function SearchDetailPage() {
                         <div className="text-[10px] uppercase tracking-wide text-text-muted">
                           Why relevant
                         </div>
-                        <input
+                        <textarea
                           value={analysis.keySellingPoint}
                           onChange={(e) =>
                             updateAnalysisField(
@@ -688,14 +688,15 @@ export default function SearchDetailPage() {
                               e.target.value
                             )
                           }
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                          rows={2}
+                          className="text-[12px] w-full border border-border rounded-md px-2 py-1.5 bg-bg text-text-primary focus:outline-none focus:border-border-strong resize-y"
                         />
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-text-muted">
                           What motivates them
                         </div>
-                        <input
+                        <textarea
                           value={analysis.candidateHook}
                           onChange={(e) =>
                             updateAnalysisField(
@@ -704,19 +705,21 @@ export default function SearchDetailPage() {
                               e.target.value
                             )
                           }
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                          rows={2}
+                          className="text-[12px] w-full border border-border rounded-md px-2 py-1.5 bg-bg text-text-primary focus:outline-none focus:border-border-strong resize-y"
                         />
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-text-muted">
                           Tension
                         </div>
-                        <input
+                        <textarea
                           value={analysis.tension}
                           onChange={(e) =>
                             updateAnalysisField(c.id, "tension", e.target.value)
                           }
-                          className="mt-0.5 w-full rounded-md border border-border bg-bg px-2 py-1 text-[12px] text-text-primary focus:border-border-strong focus:outline-none"
+                          rows={2}
+                          className="text-[12px] w-full border border-border rounded-md px-2 py-1.5 bg-bg text-text-primary focus:outline-none focus:border-border-strong resize-y"
                         />
                       </div>
                       <div className="flex items-center gap-2 pt-1">
